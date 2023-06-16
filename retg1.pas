@@ -1,5 +1,11 @@
 program RetG1;
 
+procedure SyntaxError( errLine : Cardinal; errColumn : Cardinal; errMessage : String );
+begin
+  WriteLn( 'Syntax Error[L', errLine, ', C', errColumn, ']: ', errMessage );
+  Halt(1);
+end;
+
 type
   Source = object
   public
@@ -11,16 +17,18 @@ type
 
     function ReadChar: Char;
 
+    procedure NextToken;
+
   protected
     handle : File of Char;
     isOpen : Boolean;
 
   public
-    line : Integer;
-    column : Integer;
+    line : Cardinal;
+    column : Cardinal;
 
-    nextLine : Integer;
-    nextColumn : Integer;
+    nextLine : Cardinal;
+    nextColumn : Cardinal;
 
     ch : Char;
     nextch : Char;
@@ -129,6 +137,83 @@ begin
 end;
 {$POP I}
 
+procedure Source.NextToken;
+var
+  commentLevel : Cardinal;
+  doneSkip : Boolean;
+  startLine : Cardinal;
+  startColumn : Cardinal;
+
+begin
+  if not isOpen
+    then Exit;
+
+  repeat
+    doneSkip := True; { Assume that loop is complete }
+
+    { Skip space and EOL characters }
+    if ch in [#9, ' ', #13, #10] then
+    begin
+      while ch in [#9, ' ', #13, #10]
+        do ReadChar;
+
+      doneSkip := False; { Run loop again }
+    end;
+
+    { Skip single line comments }
+    if (ch = '/') and (nextch = '/') then
+    begin
+      ReadChar; { Skip / }
+      ReadChar; { Skip / }
+
+      while not (ch in [#0, #13, #10]) do
+      begin
+        ReadChar; { Skip everything }
+      end;
+
+      ReadChar; { Skip #13 or #10 }
+
+      doneSkip := False; { Run loop again }
+    end;
+
+    { Skip multi-line, nested, comments }
+    if (ch = '/') and (nextch = '*') then
+    begin
+      startLine := line;
+      startColumn := column;
+
+      ReadChar; { Skip / }
+      ReadChar; { Skip * }
+
+      commentLevel := 1;
+
+      while commentLevel <> 0 do
+      begin
+        if (ch = '/') and (nextch = '*') then
+        begin
+          Dec( commentLevel );
+
+          ReadChar; { Skip / }
+          ReadChar; { Skip * }
+          continue;
+        end;
+
+        if (ch = '*') and (nextch = '/') then
+        begin
+          Inc( commentLevel );
+
+          ReadChar; { Skip * }
+          ReadChar; { Skip / }
+          continue;
+        end;
+
+        ReadChar;
+      end;
+    end;
+  until doneSkip;
+WriteLn( line, ' ', column, ' ', Ord(ch), ': ', ch, ' ', Ord(nextch), ': ', nextch );
+end;
+
 procedure Source.Close;
 begin
   if isOpen then
@@ -159,13 +244,8 @@ begin
     Halt(1);
   end;
 
-  while retSource.ch <> #0 do
-  begin
-    WriteLn( '(L', retSource.line, ',C', retSource.column, '): ', Ord(retSource.ch) );
-    if retSource.ch <> #0
-      then retSource.ReadChar;
-  end;
-  WriteLn;
+  retSource.NextToken;
+WriteLn( Ord(retSource.ch) );
 
   retSource.Close;
   retSource.Done;

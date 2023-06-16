@@ -1,3 +1,7 @@
 
+  // Single-line comment
 
+ /* Multi-line
+   /*nested */ comment*/
 
+program
