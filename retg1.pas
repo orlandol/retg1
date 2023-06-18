@@ -191,7 +191,9 @@ begin
       begin
         if (ch = '/') and (nextch = '*') then
         begin
-          Dec( commentLevel );
+          if commentLevel = Cardinal(-1)
+            then SyntaxError( startLine, startColumn, 'Maximum comment depth reached.' );
+          Inc( commentLevel );
 
           ReadChar; { Skip / }
           ReadChar; { Skip * }
@@ -200,7 +202,9 @@ begin
 
         if (ch = '*') and (nextch = '/') then
         begin
-          Inc( commentLevel );
+          if commentLevel = 0
+            then SyntaxError( line, column, 'Close comment without matching open comment' );
+          Dec( commentLevel );
 
           ReadChar; { Skip * }
           ReadChar; { Skip / }
