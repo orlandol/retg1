@@ -1,3 +1,4 @@
+
 program RetG1;
 
 procedure SyntaxError( errLine : Cardinal; errColumn : Cardinal; errMessage : String );
@@ -7,7 +8,16 @@ begin
 end;
 
 type
-  Source = object
+  SymbolTable = object
+  end;
+
+type
+  Assembler = object
+  end;
+
+type
+  Parser = object
+  { Methods }
   public
     constructor Init;
     destructor Done;
@@ -15,15 +25,22 @@ type
     function Open( fileName : String ): Boolean;
     procedure Close;
 
+  protected
     function ReadChar: Char;
+
+    function ReadIdent( var toIdent : String ): Boolean;
 
     procedure NextToken;
 
+  public
+    procedure Build;
+
+  { Member variables }
   protected
     handle : File of Char;
     isOpen : Boolean;
 
-  public
+  protected
     line : Cardinal;
     column : Cardinal;
 
@@ -34,7 +51,7 @@ type
     nextch : Char;
   end;
 
-constructor Source.Init;
+constructor Parser.Init;
 begin
   isOpen := False;
 
@@ -48,7 +65,7 @@ begin
   nextch := #0;
 end;
 
-destructor Source.Done;
+destructor Parser.Done;
 begin
   isOpen := False;
 
@@ -63,13 +80,13 @@ begin
 end;
 
 {$PUSH I}{$I-}
-function Source.Open( fileName : String ): Boolean;
+function Parser.Open( fileName : String ): Boolean;
 begin
   Open := False;
 
   if isOpen then
   begin
-    Source.Close;
+    Parser.Close;
     isOpen := False;
   end;
 
@@ -97,8 +114,26 @@ begin
 end;
 {$POP I}
 
+procedure Parser.Close;
+begin
+  if isOpen then
+  begin
+    System.Close( handle );
+    isOpen := False;
+  end;
+
+  line := 1;
+  column := 1;
+
+  nextLine := 1;
+  nextColumn := 1;
+
+  ch := #0;
+  nextch := #0;
+end;
+
 {$PUSH I}{$I-}
-function Source.ReadChar: Char;
+function Parser.ReadChar: Char;
 begin
   line := nextLine;
   column := nextColumn;
@@ -137,7 +172,37 @@ begin
 end;
 {$POP I}
 
-procedure Source.NextToken;
+function Parser.ReadIdent( var toIdent : String ): Boolean;
+begin
+  ReadIdent := false;
+  toIdent := '';
+
+  case ch of
+  '_', 'a'..'z', 'A'..'Z':
+    ;
+  otherwise
+    Exit;
+  end;
+
+  while ch <> #0 do
+  begin
+    if Length(toIdent) = 255
+      then Exit;
+
+    case ch of
+    '_', 'a'..'z', 'A'..'Z', '0'..'9':
+      toIdent := toIdent + ch;
+    otherwise
+      Exit;
+    end;
+
+    ReadChar;
+  end;
+
+  ReadIdent := True;
+end;
+
+procedure Parser.NextToken;
 var
   commentLevel : Cardinal;
   doneSkip : Boolean;
@@ -203,7 +268,7 @@ begin
         if (ch = '*') and (nextch = '/') then
         begin
           if commentLevel = 0
-            then SyntaxError( line, column, 'Close comment without matching open comment' );
+            then SyntaxError( line, column, 'Comment closed without a matching comment opening.' );
           Dec( commentLevel );
 
           ReadChar; { Skip * }
@@ -211,46 +276,49 @@ begin
           continue;
         end;
 
+        if ch = #0 then
+        begin
+          if commentLevel <> 0
+            then SyntaxError( startLine, startColumn, 'Unexpected EOF in comment.' );
+        end;
+
         ReadChar;
       end;
+
+      doneSkip := False; { Run loop again }
     end;
   until doneSkip;
-WriteLn( line, ' ', column, ' ', Ord(ch), ': ', ch, ' ', Ord(nextch), ': ', nextch );
 end;
 
-procedure Source.Close;
+procedure Parser.Build;
+var
+  identName : String;
+  startLine : Cardinal;
+  startColumn : Cardinal;
+
 begin
-  if isOpen then
-  begin
-    System.Close( handle );
-    isOpen := False;
-  end;
-
-  line := 1;
-  column := 1;
-
-  nextLine := 1;
-  nextColumn := 1;
-
-  ch := #0;
-  nextch := #0;
+  NextToken;
+  identName := '';
+  startLine := line;
+  startColumn := column;
+  if (not ReadIdent(identName)) and (identName <> 'program')
+    then SyntaxError( startLine, startColumn, 'Expected keyword program' );
 end;
 
 var
-  retSource : Source;
+  retParser : Parser;
 
 begin
-  retSource.Init;
+  retParser.Init;
 
-  if not retSource.Open('test.ret') then
+  if not retParser.Open('test.ret') then
   begin
     WriteLn( 'Error opening "test.ret".' );
     Halt(1);
   end;
 
-  retSource.NextToken;
-WriteLn( Ord(retSource.ch) );
+  retParser.Build;
 
-  retSource.Close;
-  retSource.Done;
+  retParser.Close;
+  retParser.Done;
 end.

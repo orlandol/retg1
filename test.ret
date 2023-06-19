@@ -1,7 +1,7 @@
 
   // Single-line comment
 
- /* Multi-line
-   /*nested */ comment*/
+/* Multi-line
+  /*nested*/ comment */
 
 program retg1
