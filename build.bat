@@ -1,4 +1,5 @@
 @echo off
-if exist retg1.exe del retg1.exe
+call clean.bat
 
-fpc retg1.pas
+packcc retg1.peg
+if exist retg1.c tcc retg1.c

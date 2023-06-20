@@ -4,7 +4,4 @@
 /* Multi-line
   /*nested*/ comment */
 
-program test
-
-run
-end
+program retg1
