@@ -78,22 +78,21 @@ source <-
     printf(
       "\n"
       "segment .data use32\n"
-      "\n"
-      "segment .bss use32\n"
     );
   }
 
 # program IDENT
 declare_program <-
   'program' _ <ident> {
-    printf( "PROGRAM[%s]\n", $1 );
+    printf( "; PROGRAM[%s]\n", $1 );
     printf(
-      "\n"
-      "CPU 386\n"
       "\n"
       "BITS 32\n"
       "\n"
-      "segment .text use32\n"
+      "  extern ExitProcess\n"
+      "  import ExitProcess kernel32.dll\n"
+      "\n"
+      "segment .code use32\n"
       "\n"
     );
   }
@@ -109,9 +108,9 @@ declare_run <-
 
 declare_run_begin <-
   'run' {
-    printf( "RUN_BEGIN\n" );
+    printf( "; RUN_BEGIN\n" );
     printf(
-      "run:\n"
+      "\n"
       "..start:\n"
       "  push    ebp\n"
       "  mov     ebp, esp\n"
@@ -121,13 +120,14 @@ declare_run_begin <-
 
 declare_run_end <-
   'end' {
-    printf( "RUN_END\n" );
+    printf( "; RUN_END\n" );
     printf(
       "  mov     esp, ebp\n"
       "  pop     ebp\n"
       "\n"
       "  push    dword 0\n"
       "  call    [ExitProcess]\n"
+      "\n"
     );
   }
 
@@ -177,14 +177,14 @@ int main( int argc, char* argv[] ) {
 
   pcc_context_t *ctx = pcc_create(&parseState);
 
-  printf(
+  fprintf( stderr,
     "\n"
     "Retineo G1 Copyright 1993-2023 Orlando Llanes\n"
     "\n"
   );
 
   if( argc != 3 ) {
-    printf( "Usage: retg1 source.ret binary.exe\n" );
+    fprintf( stderr, "Usage: retg1 source.ret binary.exe\n" );
     exit(1);
   }
 
