@@ -1,3 +1,3 @@
 @echo off
-3rdparty\nasm\nasm -fobj t.asm -o t.obj
-3rdparty\alink\alink t.obj -oPE -subsys console -o t.exe
+3rdparty\nasm\nasm -fobj test.asm -o t.obj
+3rdparty\alink\alink test.obj -oPE -subsys console -o test.exe

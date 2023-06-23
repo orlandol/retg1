@@ -1,10 +1,10 @@
 
 ### Begin grammar definitions
 
-source <-
+parse_program <-
   _ declare_program _ declare_run _ eof {
     printf(
-      "%s%s%s%s%s",
+      "", //"%s%s%s%s%s",
       auxil->asmgen.dllImports,
       auxil->asmgen.codeSegment,
       auxil->asmgen.dataSegment,
@@ -121,6 +121,31 @@ eof <- !.
 %header {
   #include "3rdparty/sds/sds.h"
 
+  #ifndef _MAX_PATH
+  // https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
+  #define _MAX_PATH 260
+  #endif
+
+  #ifndef _MAX_DRIVE
+  // https://learn.microsoft.com/en-us/previous-versions/8e46eyt7(v=vs.140)
+  #define _MAX_DRIVE 3
+  #endif
+
+  #ifndef _MAX_DIR
+  // https://learn.microsoft.com/en-us/previous-versions/8e46eyt7(v=vs.140)
+  #define _MAX_DIR 256
+  #endif
+
+  #ifndef _MAX_FNAME
+  // https://learn.microsoft.com/en-us/previous-versions/8e46eyt7(v=vs.140)
+  #define _MAX_FNAME 256
+  #endif
+
+  #ifndef _MAX_EXT
+  // https://learn.microsoft.com/en-us/previous-versions/8e46eyt7(v=vs.140)
+  #define _MAX_EXT 256
+  #endif
+
   /// Begin parse state auxil declarations
   typedef struct SourceFile {
     FILE* handle;
@@ -154,6 +179,11 @@ eof <- !.
   #include "3rdparty/sds/sds.c"
 
   ParseState parseState = {};
+
+  sds retFileName = NULL;
+  sds asmFileName = NULL;
+  sds objFileName = NULL;
+  sds exeFileName = NULL;
 
   // begin strnlen copied from packcc.c source file, as a workaround for TinyCC
   #ifdef __TINYC__
@@ -210,9 +240,20 @@ eof <- !.
         auxil->source.nextColumn++;
       }
     }
+
     return auxil->source.ch;
   }
   // End PCC_GETCHAR override
+
+  void Error( const char* errorMessage ) {
+    fprintf( stderr, "Error: %s\n", errorMessage ); // stderr temporary
+    exit(2);
+  }
+
+  void SyntaxError( unsigned line, unsigned column, const char* errorMessage ) {
+    fprintf( stderr, "Syntax Error[L%u,C%u]: %s\n", line, column, errorMessage ); // stderr temporary
+    exit(3);
+  }
 }
 
 %common {
@@ -270,8 +311,99 @@ void CloseSourceFile() {
 }
 /// Close source file - end
 
+void ShowBanner() {
+  printf(
+    "\n"
+    "Retineo G1 Copyright 1993 - 2023 Orlando Llanes\n"
+    "\n"
+  );
+}
+
+void ShowUsage() {
+  printf(
+    "Usage: retg1 source[.ret] [binary[.ext]]\n"
+    "\n"
+  );
+  exit(1);
+}
+
+void ParseOptions( int argc, char** argv ) {
+  char* sourceArg = NULL;
+  char* binaryArg = NULL;
+
+  char sourceDrive[_MAX_DRIVE] = {0};
+  char sourceDir[_MAX_DIR] = {0};
+  char sourceName[_MAX_FNAME] = {0};
+  char sourceExt[_MAX_EXT] = {0};
+
+  char binaryDrive[_MAX_DRIVE] = {0};
+  char binaryDir[_MAX_DIR] = {0};
+  char binaryName[_MAX_FNAME] = {0};
+  char binaryExt[_MAX_EXT] = {0};
+
+  switch( argc ) {
+  case 3: // retg1 source[.ret] [binary[.exe]]
+    binaryArg = argv[2];
+
+  case 2: // retg1 source[.ret]
+    sourceArg = argv[1];
+    break;
+
+  default:
+    ShowUsage();
+    exit(1);
+  }
+
+  if( sourceArg ) {
+    _splitpath(sourceArg, sourceDrive, sourceDir, sourceName, sourceExt);
+    if( (*sourceExt) == 0 ) {
+      strcpy( sourceExt, ".ret" );
+    }
+
+    retFileName = sdscatfmt(sdsempty(), "%s%s%s%s",
+        sourceDrive, sourceDir, sourceName, sourceExt);
+
+    _splitpath(sourceArg, binaryDrive, binaryDir, binaryName, binaryExt);
+    strcpy( binaryExt, ".exe" );
+  }
+
+  if( binaryArg ) {
+    _splitpath(binaryArg, binaryDrive, binaryDir, binaryName, binaryExt);
+
+    if( (*binaryDrive) == 0 ) {
+      strcpy( binaryDrive, sourceDrive );
+    }
+
+    if( (*binaryDir) == 0 ) {
+      strcpy( binaryDir, sourceDir );
+    }
+
+    if( (*binaryName) == 0 ) {
+      strcpy( binaryName, sourceName );
+    }
+
+    if( (*binaryExt) == 0 ) {
+      strcpy( binaryExt, ".exe" );
+    }
+  }
+
+  asmFileName = sdscatfmt(sdsempty(), "%s%s%s%s",
+      binaryDrive, binaryDir, binaryName, ".asm");
+
+  objFileName = sdscatfmt(sdsempty(), "%s%s%s%s",
+      binaryDrive, binaryDir, binaryName, ".obj");
+
+  exeFileName = sdscatfmt(sdsempty(), "%s%s%s%s",
+      binaryDrive, binaryDir, binaryName, binaryExt);
+}
+
 void Cleanup() {
   CloseSourceFile();
+
+  sdsfree( retFileName );
+  sdsfree( asmFileName );
+  sdsfree( objFileName );
+  sdsfree( exeFileName );
 }
 
 int main( int argc, char* argv[] ) {
@@ -285,53 +417,48 @@ int main( int argc, char* argv[] ) {
     "\n"
   );
 
-  if( argc != 3 ) {
-    fprintf( stderr, "Usage: retg1 source.ret binary.exe\n" );
-    exit(1);
-  }
+  ParseOptions( argc, argv );
 
-  OpenSourceFile( argv[1] );
+  OpenSourceFile( retFileName );
 
   while( pcc_parse(ctx, NULL) ) {
+  }
+
+  /* Build assembler source */
+
+  fprintf( stderr, "\nBuilding '%s'...\n", asmFileName ); // stderr temporary
+
+  char* nasmOptions[] = {
+    " -fobj",
+    asmFileName,
+    NULL
+  };
+  int nasmResult = 0;
+  if( (RunProgram("3rdparty/nasm/nasm.exe", nasmOptions, &nasmResult) == 0) ||
+      nasmResult ) {
+    Error( "Error attempting to run 3rdparty/nasm/nasm.exe" );
+  }
+
+
+  /* Link executable */
+  fprintf( stderr, "\nLinking '%s'...\n", exeFileName ); // stderr temporary
+
+  char* alinkOptions[] = {
+    "-c",
+    "-oPE",
+    "-subsys console",
+    objFileName,
+    NULL
+  };
+  int alinkResult = 0;
+  if( (RunProgram("3rdparty/alink/alink.exe", alinkOptions, &alinkResult) == 0) ||
+      alinkResult ) {
+    Error( "Error attempting to run 3rdparty/alink/alink.exe" );
   }
 
   Cleanup();
 
   pcc_destroy( ctx );
-
-  /* Build assembler source */
-/*
-  printf( "\nBuilding '%s'...\n", rstrtext(asmFileName) );
-
-  char* nasmOptions[] = {
-    " -fobj",
-    rstrtext(asmFileName),
-    NULL
-  };
-  int nasmResult = 0;
-  if( (RunProgram("3rdparty/nasm/nasm.exe", nasmOptions, &nasmResult) == false) ||
-      nasmResult ) {
-    Error( unableToRun, "3rdparty/nasm/nasm.exe" );
-  }
-*/
-
-  /* Link executable */
-/*
-  printf( "\nLinking '%s'...\n", rstrtext(exeFileName) );
-
-  char* alinkOptions[] = {
-    " -c",
-    "-oPE",
-    "-subsys console",
-    rstrtext(objFileName),
-    NULL
-  };
-  int alinkResult = 0;
-  if( (RunProgram("3rdparty/alink/alink.exe", alinkOptions, &alinkResult) == false) ||
-      alinkResult ) {
-    Error( unableToRun, "3rdparty/alink/alink.exe" );
-  }
-*/
 
   return 0;
 }
