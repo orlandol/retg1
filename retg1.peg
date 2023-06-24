@@ -445,9 +445,7 @@ int main( int argc, char* argv[] ) {
   while( pcc_parse(ctx, NULL) ) {
   }
 
-  /* Build assembler source */
   printf( "\nBuilding '%s'...\n", asmFileName );
-
   char* nasmOptions[] = {
     " -fobj",
     asmFileName,
@@ -459,9 +457,7 @@ int main( int argc, char* argv[] ) {
     Error( "Error attempting to run 3rdparty/nasm/nasm.exe" );
   }
 
-  /* Link executable */
   printf( "\nLinking '%s'...\n", exeFileName );
-
   char* alinkOptions[] = {
     " -c",
     "-oPE",
@@ -470,7 +466,7 @@ int main( int argc, char* argv[] ) {
     NULL
   };
   int alinkResult = 0;
-  if( (RunProgram("3rdparty/alink/alink.exe", NULL /*alinkOptions*/, &alinkResult) == 0) ||
+  if( (RunProgram("3rdparty/alink/alink.exe", alinkOptions, &alinkResult) == 0) ||
       alinkResult ) {
     Error( "Error attempting to run 3rdparty/alink/alink.exe" );
   }
