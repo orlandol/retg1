@@ -3,40 +3,62 @@
 
 parse_program <-
   _ declare_program _ declare_run _ eof {
-    printf(
-      "", //"%s%s%s%s%s",
-      auxil->asmgen.dllImports,
-      auxil->asmgen.codeSegment,
-      auxil->asmgen.dataSegment,
-      auxil->asmgen.stackSegment,
-      auxil->asmgen.bssSegment
+    FILE* asmFile = NULL;
+
+    asmFile = fopen(asmFileName, "w");
+    if( asmFile == NULL ) {
+      printf( "Error creating assembler file '%s'\n", asmFileName );
+      exit(3);
+    }
+
+    fprintf( asmFile,
+      "\n"
+      "  BITS 32\n"
+      "\n"
+      "%s\n"
+      "%s\n"
+      "%s\n"
+      "%s\n"
+      "%s\n",
+      auxil->asmgen.dllImports ? auxil->asmgen.dllImports : "",
+      auxil->asmgen.codeSegment ? auxil->asmgen.codeSegment : "",
+      auxil->asmgen.dataSegment ? auxil->asmgen.dataSegment : "",
+      auxil->asmgen.stackSegment ? auxil->asmgen.stackSegment : "",
+      auxil->asmgen.bssSegment ? auxil->asmgen.bssSegment : ""
     );
 
-    printf(
-      "\n"
-      "segment .data use32\n"
-      "\n"
-      "segment .stack use32\n"
-      "\n"
-      "segment .bss use32\n"
-      "\n"
-    );
+    fclose( asmFile );
+    asmFile = NULL;
   }
 
 # program IDENT
 declare_program <-
   'program' _ <ident> {
     printf( "; PROGRAM[%s]\n", $1 );
-    printf(
-      "\n"
-      "  CPU 386\n"
-      "\n"
-      "  BITS 32\n"
-      "\n"
+
+    auxil->asmgen.dllImports = sdsnew(
       "  extern ExitProcess\n"
       "  import ExitProcess kernel32.dll\n"
       "\n"
+    );
+
+    auxil->asmgen.codeSegment = sdsnew(
       "segment .code use32\n"
+      "\n"
+    );
+
+    auxil->asmgen.dataSegment = sdsnew(
+      "segment .data use32\n"
+      "\n"
+    );
+
+    auxil->asmgen.stackSegment = sdsnew(
+      "segment .stack use32\n"
+      "\n"
+    );
+
+    auxil->asmgen.bssSegment = sdsnew(
+      "segment .bss use32\n"
       "\n"
     );
   }
@@ -53,7 +75,9 @@ declare_run <-
 declare_run_begin <-
   'run' {
     printf( "; RUN_BEGIN\n" );
-    printf(
+
+    auxil->asmgen.codeSegment = sdscat(
+      auxil->asmgen.codeSegment,
       "\n"
       "..start:\n"
       "  push    ebp\n"
@@ -65,7 +89,9 @@ declare_run_begin <-
 declare_run_end <-
   'end' {
     printf( "; RUN_END\n" );
-    printf(
+
+    auxil->asmgen.codeSegment = sdscat(
+      auxil->asmgen.codeSegment,
       "  mov     esp, ebp\n"
       "  pop     ebp\n"
       "\n"
@@ -351,7 +377,6 @@ void ParseOptions( int argc, char** argv ) {
 
   default:
     ShowUsage();
-    exit(1);
   }
 
   if( sourceArg ) {
@@ -411,11 +436,7 @@ int main( int argc, char* argv[] ) {
 
   pcc_context_t *ctx = pcc_create(&parseState);
 
-  fprintf( stderr,
-    "\n"
-    "Retineo G1 Copyright 1993-2023 Orlando Llanes\n"
-    "\n"
-  );
+  ShowBanner();
 
   ParseOptions( argc, argv );
 
@@ -425,8 +446,7 @@ int main( int argc, char* argv[] ) {
   }
 
   /* Build assembler source */
-
-  fprintf( stderr, "\nBuilding '%s'...\n", asmFileName ); // stderr temporary
+  printf( "\nBuilding '%s'...\n", asmFileName );
 
   char* nasmOptions[] = {
     " -fobj",
@@ -439,19 +459,18 @@ int main( int argc, char* argv[] ) {
     Error( "Error attempting to run 3rdparty/nasm/nasm.exe" );
   }
 
-
   /* Link executable */
-  fprintf( stderr, "\nLinking '%s'...\n", exeFileName ); // stderr temporary
+  printf( "\nLinking '%s'...\n", exeFileName );
 
   char* alinkOptions[] = {
-    "-c",
+    " -c",
     "-oPE",
     "-subsys console",
     objFileName,
     NULL
   };
   int alinkResult = 0;
-  if( (RunProgram("3rdparty/alink/alink.exe", alinkOptions, &alinkResult) == 0) ||
+  if( (RunProgram("3rdparty/alink/alink.exe", NULL /*alinkOptions*/, &alinkResult) == 0) ||
       alinkResult ) {
     Error( "Error attempting to run 3rdparty/alink/alink.exe" );
   }
