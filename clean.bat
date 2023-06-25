@@ -8,3 +8,5 @@ if exist retg1.o del retg1.o
 if exist test.asm del test.asm
 if exist test.obj del test.obj
 if exist test.exe del test.exe
+
+if exist symtab.exe del symtab.exe
