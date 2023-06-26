@@ -11,6 +11,10 @@
 
 program IDENT
 
+enum IDENT
+  {IDENT {, IDENT} ['=' CONSTEXPR]}
+end
+
 const TYPESPEC IDENT = CONSTEXPR
 
 type TYPESPEC IDENT

@@ -34,8 +34,6 @@ parse_program <-
 # program IDENT
 declare_program <-
   'program' _ <ident> {
-    printf( "; PROGRAM[%s]\n", $1 );
-
     auxil->asmgen.dllImports = sdsnew(
       "  extern ExitProcess\n"
       "  import ExitProcess kernel32.dll\n"
@@ -74,8 +72,6 @@ declare_run <-
 
 declare_run_begin <-
   'run' {
-    printf( "; RUN_BEGIN\n" );
-
     auxil->asmgen.codeSegment = sdscat(
       auxil->asmgen.codeSegment,
       "\n"
@@ -88,8 +84,6 @@ declare_run_begin <-
 
 declare_run_end <-
   'end' {
-    printf( "; RUN_END\n" );
-
     auxil->asmgen.codeSegment = sdscat(
       auxil->asmgen.codeSegment,
       "  mov     esp, ebp\n"
@@ -145,7 +139,10 @@ eof <- !.
 }
 
 %header {
+  #include "3rdparty/sds/sdsalloc.h"
   #include "3rdparty/sds/sds.h"
+
+  #include "3rdparty/avl_tree/avl_tree.h"
 
   #ifndef _MAX_PATH
   // https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
@@ -172,6 +169,12 @@ eof <- !.
   #define _MAX_EXT 256
   #endif
 
+  /// Begin symbol table definitions
+  typedef struct SymbolTable {
+    struct avl_tree_node node;
+  } SymbolTable;
+  /// End symbol table definitions
+
   /// Begin parse state auxil declarations
   typedef struct SourceFile {
     FILE* handle;
@@ -197,12 +200,15 @@ eof <- !.
   typedef struct ParseState {
     SourceFile source;
     AsmFile asmgen;
+    SymbolTable symtab;
   } ParseState;
   // End parse state auxil declarations
 }
 
 %source {
   #include "3rdparty/sds/sds.c"
+
+  #include "3rdparty/avl_tree/avl_tree.c"
 
   ParseState parseState = {};
 
@@ -445,9 +451,11 @@ int main( int argc, char* argv[] ) {
   while( pcc_parse(ctx, NULL) ) {
   }
 
-  printf( "\nBuilding '%s'...\n", asmFileName );
+  printf( "Building '%s'...\n\n", asmFileName );
+
   char* nasmOptions[] = {
-    " -fobj",
+    " ",
+    "-fobj",
     asmFileName,
     NULL
   };
@@ -457,11 +465,13 @@ int main( int argc, char* argv[] ) {
     Error( "Error attempting to run 3rdparty/nasm/nasm.exe" );
   }
 
-  printf( "\nLinking '%s'...\n", exeFileName );
+  printf( "Linking '%s'...\n\n", exeFileName );
+
   char* alinkOptions[] = {
-    " -c",
-    "-oPE",
+    " ",
+    "-p",
     "-subsys console",
+    "-oPE",
     objFileName,
     NULL
   };
@@ -470,6 +480,7 @@ int main( int argc, char* argv[] ) {
       alinkResult ) {
     Error( "Error attempting to run 3rdparty/alink/alink.exe" );
   }
+  printf( "\n" );
 
   Cleanup();
 
