@@ -59,6 +59,8 @@ typedef struct ParseState {
 
 #define SYMBOLREF(nodeVar) avl_tree_entry(nodeVar, Symbol, node)
 
+void ReleaseSymbolTable( SymbolTable** symbolTablePtr );
+
 int CompareSymbolNames( const struct avl_tree_node* leftNode,
   const struct avl_tree_node* rightNode );
 
@@ -87,6 +89,9 @@ int main( int argc, char** argv ) {
 #include "3rdparty/sds/sds.c"
 
 #include "3rdparty/avl_tree/avl_tree.c"
+
+void ReleaseSymbolTable( SymbolTable** symbolTablePtr ) {
+}
 
 int CompareSymbolNames( const struct avl_tree_node* leftNode,
   const struct avl_tree_node* rightNode ) {
@@ -136,7 +141,10 @@ void ReleaseConst( Symbol** symbolPtr ) {
 }
 
 Symbol* Lookup( SymbolTable* symbolTable, const sds symbolName ) {
+  Symbol searchSymbol = {};
+
   if( symbolTable && symbolTable->root && symbolName && (*symbolName) ) {
+    searchSymbol.name = symbolName;
     return SYMBOLREF(avl_tree_lookup_node(symbolTable->root,
         &searchSymbol.node, CompareSymbolNames));
   }
