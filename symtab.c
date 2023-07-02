@@ -57,22 +57,24 @@ typedef struct ParseState {
   SymbolTable symtab;
 } ParseState;
 
-#define SYMBOLREF(nodeVar) avl_tree_entry(nodeVar, Symbol, node)
+#define SYMBOLREF(nodeVar) (nodeVar ? avl_tree_entry(nodeVar, Symbol, node) : NULL)
 
-void ReleaseSymbolTable( SymbolTable** symbolTablePtr );
+void ReleaseSymbol( Symbol** symbolPtr );
+void ReleaseSymbolTable( SymbolTable* symbolTable );
 
 int CompareSymbolNames( const struct avl_tree_node* leftNode,
   const struct avl_tree_node* rightNode );
 
-void DeclareConst( SymbolTable* symbolTable,
-    const sds constName, SymbolValue* constValue );
+int DeclareConst( SymbolTable* symbolTable,
+    char* constName, SymbolValue* constValue );
 void ReleaseConst( Symbol** symbolPtr );
 
-Symbol* Lookup( SymbolTable* symbolTable, const sds symbolName );
+Symbol* Lookup( SymbolTable* symbolTable, const char* symbolName );
 
 SymbolTable symtab;
 
 void Cleanup() {
+  ReleaseSymbolTable( &symtab );
 }
 
 int main( int argc, char** argv ) {
@@ -81,7 +83,13 @@ int main( int argc, char** argv ) {
   SymbolValue constVal = {};
   constVal.vtype = valUint;
   constVal.uintValue = 123;
+
   DeclareConst( &symtab, sdsnew("Test"), &constVal );
+
+  Symbol* testConst = NULL;
+  testConst = Lookup(&symtab, "Test");
+  printf( "Lookup(%s): %u\n", testConst ? testConst->name : "",
+    testConst ? testConst->constSym.value.uintValue : 0 );
 
   return 0;
 }
@@ -90,7 +98,41 @@ int main( int argc, char** argv ) {
 
 #include "3rdparty/avl_tree/avl_tree.c"
 
-void ReleaseSymbolTable( SymbolTable** symbolTablePtr ) {
+void ReleaseSymbol( Symbol** symbolPtr ) {
+  if( symbolPtr ) {
+    if( (*symbolPtr) ) {
+      if( (*symbolPtr)->release ) {
+        (*symbolPtr)->release( symbolPtr );
+      }
+
+      free( (*symbolPtr) );
+      (*symbolPtr) = NULL;
+    }
+  }
+}
+
+void ReleaseSymbolTable( SymbolTable* symbolTable ) {
+  Symbol* symbolToDelete = NULL;
+
+  if( symbolTable && symbolTable->root ) {
+    //avl_tree_for_each_in_postorder(child_struct, root, struct_name, struct_member)
+    avl_tree_for_each_in_postorder(symbolToDelete, symbolTable->root, Symbol, node) {
+      printf( "Releasing symbol(%s)\n", symbolToDelete->name );
+
+      ReleaseSymbol( &symbolToDelete );
+    }
+  }
+}
+
+int CompareNameToSymbolName( const void* symbolName,
+  const struct avl_tree_node* symbol ) {
+
+  if( symbolName &&
+      symbol && SYMBOLREF(symbol)->name ) {
+    return strcmp((const char*)symbolName, SYMBOLREF(symbol)->name);
+  }
+
+  return -1;
 }
 
 int CompareSymbolNames( const struct avl_tree_node* leftNode,
@@ -104,27 +146,34 @@ int CompareSymbolNames( const struct avl_tree_node* leftNode,
   return -1;
 }
 
-void DeclareConst( SymbolTable* symbolTable,
-    const sds constName, SymbolValue* constValue ) {
+int DeclareConst( SymbolTable* symbolTable,
+    char* constName, SymbolValue* constValue ) {
   Symbol* newSymbol = NULL;
 
   if( symbolTable && constName && (*constName) &&
       constValue && constValue->vtype ) {
 
+    if( Lookup(symbolTable, constName) ) {
+      return 0;
+    }
+
     newSymbol = calloc(1, sizeof(Symbol));
     if( newSymbol == NULL ) { return; }
 
     newSymbol->release = ReleaseConst;
+    newSymbol->name = sdsnew(constName);
     newSymbol->stype = stypeConst;
-    newSymbol->constSym.value = (*constValue);
+    newSymbol->constSym.value = *constValue;
 
     if( avl_tree_insert(&symbolTable->root,
-        &newSymbol->node, CompareSymbolNames) != NULL ) {
-
-      free( newSymbol );
-      newSymbol = NULL;
+        &newSymbol->node, CompareSymbolNames) == NULL ) {
+      return -1;
     }
+
+    ReleaseConst( &newSymbol );
   }
+
+  return 0;
 }
 
 void ReleaseConst( Symbol** symbolPtr ) {
@@ -140,13 +189,13 @@ void ReleaseConst( Symbol** symbolPtr ) {
   }
 }
 
-Symbol* Lookup( SymbolTable* symbolTable, const sds symbolName ) {
-  Symbol searchSymbol = {};
+Symbol* Lookup( SymbolTable* symbolTable, const char* symbolName ) {
+  struct avl_tree_node* symbolNode = NULL;
 
   if( symbolTable && symbolTable->root && symbolName && (*symbolName) ) {
-    searchSymbol.name = symbolName;
-    return SYMBOLREF(avl_tree_lookup_node(symbolTable->root,
-        &searchSymbol.node, CompareSymbolNames));
+    symbolNode = avl_tree_lookup(symbolTable->root, symbolName,
+        CompareNameToSymbolName);
   }
-  return NULL;
+
+  return SYMBOLREF(symbolNode);
 }
