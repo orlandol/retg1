@@ -11,6 +11,27 @@
 
 program PROGNAME
 
+callspec [x86_32] CALLSPECNAME
+  {[align CONSTEXPR] |
+
+  [parameters
+    [align CONSTEXPR]
+    [order (forward | reverse)]
+    [stack (all | {CONSTEXPR {, CONSTEXPR}})]
+    [cleanup (onreturn | caller)]
+   end] |
+
+  [prologue
+    {ASSEMBLER_STATEMENT}
+  end] |
+
+  [epilogue
+    {ASSEMBLER_STATEMENT}
+  end]}
+end
+
+defaultcall CALLSPECNAME
+
 enum ENUMNAME
   {ENUMFIELDNAME {, ENUMEFIELDNAME} ['=' CONSTEXPR]}
 end
@@ -141,13 +162,17 @@ case EXPR
 [precase
   {exitpre | STATEMENT}
 endpre]
+
 [postcase
   {exitpost | STATEMENT}
 endpost]
+
 [in '[' CONSTEXPR .. CONSTEXPR ']'
   {exitcase | nextcase | STATEMENT}]
+
 [of CONSTEXPR
   {exitcase | nextcase | STATEMENT}]
+
 [default
   {STATEMENT}]
 end
@@ -178,7 +203,7 @@ endwhile
 
 ============ tokens =================
 
-IDENT = _a/zA/Z{_a/zA/Z0/9}
+IDENT = _a-zA-Z{_a-zA-Z0-9}
 
 STRING = '..' | ".."
 
@@ -186,12 +211,11 @@ BASETYPE = int[:bits] | uint[:bits] |
   char | string | bool |
   file | ufsize | usize
 
-CALLSPEC = cdecl | stdcall
-
 SIMPLETYPE = [@] (TYPENAME | BASETYPE) ['[' CONSTEXPR ']']
 
-FUNCSPEC = { [CALLSPEC] | [SIMPLETYPE] }
+FUNCSPEC = { [CALLSPECNAME] | [SIMPLETYPE] }
 
 TYPESPEC =
   SIMPLETYPE |
-  func {[CALLSPEC] | [SIMPLETYPE]} '('{TYPESPEC IDENT} ')'
+  func {[CALLSPECNAME] | [SIMPLETYPE]} '('
+    [TYPESPEC PARAMNAME {, TYPESPEC PARAMNAME}] ')'

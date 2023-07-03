@@ -2,7 +2,7 @@
 ### Begin grammar definitions
 
 parse_program <-
-  _ declare_program _ declare_run _ eof {
+  _ declare_program (_ top_level_declaration)* _ declare_run _ eof {
     FILE* asmFile = NULL;
 
     asmFile = fopen(asmFileName, "w");
@@ -62,7 +62,32 @@ declare_program <-
   }
 
 # top level declarations
-#top_level_declarations <- _
+top_level_declaration <-
+  declare_const
+
+# const TYPESPEC IDENT = CONSTEXPR
+declare_const <-
+  'const' _ <basetype?> _ <ident> _ '=' _ <constexpr> {
+    unsigned baseType = typeUint;
+
+    printf( "CONST[%s] %s = %s\n", $1, $2, $3 );
+
+    if( strcmp($1, "uint:") ) {
+      ///TODO: Convert bit size
+      baseType = typeUint;
+    } else if( strcmp($1, "uint") ) {
+      baseType = typeUint;
+    } else if( strcmp($1, "int:") ) {
+      ///TODO: Convert bit size
+      baseType = typeInt;
+    } else if( strcmp($1, "int") ) {
+      baseType = typeInt;
+    } else if( strcmp($1, "char") ) {
+      baseType = typeChar;
+    } else if( strcmp($1, "bool") ) {
+      baseType = typeBool;
+    }
+  }
 
 # run block declarations
 declare_run <-
@@ -95,6 +120,22 @@ declare_run_end <-
     );
   }
 
+constexpr <- character_value / ident / number / bool_value
+
+basetype <-
+  'uint:'[0-9]* {
+  }
+/ 'uint' {
+  }
+/ 'int:'[0-9]* {
+  }
+/ 'int' {
+  }
+/ 'char' {
+  }
+/ 'bool' {
+  }
+
 # qualified_ident rule adapted from:
 # https://stackoverflow.com/questions/51397025/peg-parsing-declarations-with-arbitrary-number-of-qualifiers
 #qualified_ident <-
@@ -106,6 +147,27 @@ declare_run_end <-
 #  _ <ident> {
 #    printf( "QUALIFIER[%s]\n", $1 );
 #  }
+
+number <-
+  binary_number
+/ octal_number
+/ decimal_number
+/ hex_number
+/ decimal_literal
+
+binary_number <- '0b'[_0-1]*
+
+octal_number <- '0o'[_0-7]*
+
+decimal_number <- '0d'[_0-9]*
+
+hex_number <- '0x'[_a-fA-F]*
+
+decimal_literal <- [_0-9]*
+
+character_value <- [']['] / ['].['] / ["]["] / ["].["]
+
+bool_value <- 'false' / 'true'
 
 ident <- [_a-zA-Z][_a-zA-Z0-9]*
 
@@ -169,10 +231,80 @@ eof <- !.
   #define _MAX_EXT 256
   #endif
 
+  /// Begin typespec definitions
+  enum BaseType {
+    typeNone = 0,
+    typeUint,
+    typeInt,
+    typeChar,
+    typeBool
+  };
+
+  typedef struct TypeSpec {
+    char* simpleTypeName;
+    unsigned simpleType;
+    unsigned dimensions;
+  } TypeSpec;
+  /// End typespec definitions
+
   /// Begin symbol table definitions
-  typedef struct SymbolTable {
+  enum ValueType {
+    valNone = 0,
+    valUint,
+    valInt,
+    valChar,
+    valBool,
+    valString
+  };
+
+  typedef union SymbolValue {
+    unsigned vtype;
+    union {
+      unsigned uintValue;
+      int intValue;
+      sds stringValue;
+      char charValue;
+      unsigned boolValue;
+    };
+  } SymbolValue;
+
+  enum SymbolType {
+    stypeUndefined = 0,
+    stypeConst
+  };
+
+  typedef struct ConstSymbol {
+    SymbolValue value;
+  } ConstSymbol;
+
+  typedef struct Symbol {
+    void (*release)( struct Symbol** symbol );
+    sds name;
+    unsigned stype;
+    union {
+      ConstSymbol constSym;
+    };
     struct avl_tree_node node;
+  } Symbol;
+
+  typedef struct SymbolTable {
+    Symbol* root;
   } SymbolTable;
+
+  #define SYMBOLREF(nodeVar) (nodeVar ?\
+    avl_tree_entry(nodeVar, Symbol, node) : NULL)
+
+  void ReleaseSymbol( Symbol** symbolPtr );
+  void ReleaseSymbolTable( SymbolTable* symbolTable );
+
+  int CompareSymbolNames( const struct avl_tree_node* leftNode,
+    const struct avl_tree_node* rightNode );
+
+  int DeclareConst( SymbolTable* symbolTable,
+    char* constName, unsigned baseType, SymbolValue* constValue );
+  void ReleaseConst( Symbol** symbolPtr );
+
+  Symbol* Lookup( SymbolTable* symbolTable, const char* symbolName );
   /// End symbol table definitions
 
   /// Begin parse state auxil declarations
@@ -286,6 +418,109 @@ eof <- !.
     fprintf( stderr, "Syntax Error[L%u,C%u]: %s\n", line, column, errorMessage ); // stderr temporary
     exit(3);
   }
+
+
+  /// begin - Symbol table implementation
+  void ReleaseSymbol( Symbol** symbolPtr ) {
+    if( symbolPtr ) {
+      if( (*symbolPtr) ) {
+        if( (*symbolPtr)->release ) {
+          (*symbolPtr)->release( symbolPtr );
+        }
+
+        free( (*symbolPtr) );
+        (*symbolPtr) = NULL;
+      }
+    }
+  }
+
+  void ReleaseSymbolTable( SymbolTable* symbolTable ) {
+    Symbol* symbolToDelete = NULL;
+
+    if( symbolTable && symbolTable->root ) {
+      avl_tree_for_each_in_postorder(symbolToDelete, symbolTable->root, Symbol, node) {
+        printf( "Releasing symbol(%s)\n", symbolToDelete->name );
+        ReleaseSymbol( &symbolToDelete );
+      }
+    }
+  }
+
+  int CompareNameToSymbolName( const void* symbolName,
+    const struct avl_tree_node* symbol ) {
+
+    if( symbolName &&
+        symbol && SYMBOLREF(symbol)->name ) {
+      return strcmp((const char*)symbolName, SYMBOLREF(symbol)->name);
+    }
+
+    return -1;
+  }
+
+  int CompareSymbolNames( const struct avl_tree_node* leftNode,
+    const struct avl_tree_node* rightNode ) {
+
+    if( leftNode && SYMBOLREF(leftNode)->name &&
+        rightNode && SYMBOLREF(rightNode)->name ) {
+      return strcmp(SYMBOLREF(leftNode)->name, SYMBOLREF(rightNode)->name);
+    }
+
+    return -1;
+  }
+
+  int DeclareConst( SymbolTable* symbolTable,
+      char* constName, unsigned baseType, SymbolValue* constValue ) {
+    Symbol* newSymbol = NULL;
+
+    if( symbolTable && constName && (*constName) &&
+        constValue && constValue->vtype ) {
+
+      if( Lookup(symbolTable, constName) ) {
+        return 0;
+      }
+
+      newSymbol = calloc(1, sizeof(Symbol));
+      if( newSymbol == NULL ) { return; }
+
+      newSymbol->release = ReleaseConst;
+      newSymbol->name = sdsnew(constName);
+      newSymbol->stype = stypeConst;
+      newSymbol->constSym.value = *constValue;
+
+      if( avl_tree_insert(&symbolTable->root,
+          &newSymbol->node, CompareSymbolNames) == NULL ) {
+        return -1;
+      }
+
+      ReleaseConst( &newSymbol );
+    }
+
+    return 0;
+  }
+
+  void ReleaseConst( Symbol** symbolPtr ) {
+    if( symbolPtr ) {
+      if( (*symbolPtr) ) {
+        (*symbolPtr)->release = NULL;
+        (*symbolPtr)->stype = 0;
+        sdsfree( (*symbolPtr)->name );
+
+        free( (*symbolPtr) );
+        (*symbolPtr) = NULL;
+      }
+    }
+  }
+
+  Symbol* Lookup( SymbolTable* symbolTable, const char* symbolName ) {
+    struct avl_tree_node* symbolNode = NULL;
+
+    if( symbolTable && symbolTable->root && symbolName && (*symbolName) ) {
+      symbolNode = avl_tree_lookup(symbolTable->root, symbolName,
+          CompareNameToSymbolName);
+    }
+
+    return SYMBOLREF(symbolNode);
+  }
+  /// end - Symbol table implementation
 }
 
 %common {
@@ -431,6 +666,8 @@ void ParseOptions( int argc, char** argv ) {
 void Cleanup() {
   CloseSourceFile();
 
+  ReleaseSymbolTable( &parseState.symtab );
+
   sdsfree( retFileName );
   sdsfree( asmFileName );
   sdsfree( objFileName );
@@ -448,8 +685,11 @@ int main( int argc, char* argv[] ) {
 
   OpenSourceFile( retFileName );
 
+  printf( "Parsing '%s' into '%s'...\n\n", retFileName, asmFileName );
+
   while( pcc_parse(ctx, NULL) ) {
   }
+  printf( "\n" );
 
   printf( "Building '%s'...\n\n", asmFileName );
 
@@ -464,6 +704,7 @@ int main( int argc, char* argv[] ) {
       nasmResult ) {
     Error( "Error attempting to run 3rdparty/nasm/nasm.exe" );
   }
+  printf( "\n" );
 
   printf( "Linking '%s'...\n\n", exeFileName );
 
