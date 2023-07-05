@@ -68,24 +68,78 @@ top_level_declaration <-
 # const TYPESPEC IDENT = CONSTEXPR
 declare_const <-
   'const' _ <basetype?> _ <ident> _ '=' _ <constexpr> {
-    unsigned baseType = typeUint;
+    TypeSpec typeSpec = {};
+    SymbolValue value = {};
+
+    typeSpec.simpleType = typeUint;
+    typeSpec.bits = 32;
+    value.vtype = valUint32;
 
     printf( "CONST[%s] %s = %s\n", $1, $2, $3 );
 
-    if( strcmp($1, "uint:") ) {
-      ///TODO: Convert bit size
-      baseType = typeUint;
-    } else if( strcmp($1, "uint") ) {
-      baseType = typeUint;
-    } else if( strcmp($1, "int:") ) {
-      ///TODO: Convert bit size
-      baseType = typeInt;
-    } else if( strcmp($1, "int") ) {
-      baseType = typeInt;
-    } else if( strcmp($1, "char") ) {
-      baseType = typeChar;
-    } else if( strcmp($1, "bool") ) {
-      baseType = typeBool;
+    if( strcmp($1, "uint") == 0 ) {
+      typeSpec.simpleType = typeUint;
+      value.vtype = valUint;
+      typeSpec.bits = 32;
+
+    } else if( strcmp($1, "uint8") == 0 ) {
+      typeSpec.simpleType = typeUint8;
+      value.vtype = valUint8;
+      typeSpec.bits = 8;
+
+    } else if( strcmp($1, "uint16") == 0 ) {
+      typeSpec.simpleType = typeUint16;
+      value.vtype = valUint16;
+      typeSpec.bits = 16;
+
+    } else if( strcmp($1, "uint32") == 0 ) {
+      typeSpec.simpleType = typeUint32;
+      value.vtype = valUint32;
+      typeSpec.bits = 32;
+
+    } else if( strcmp($1, "uint64") == 0 ) {
+      typeSpec.simpleType = typeUint64;
+      value.vtype = valUint64;
+      typeSpec.bits = 32;
+
+    } else if( strcmp($1, "int") == 0 ) {
+      typeSpec.simpleType = typeInt;
+      value.vtype = valInt;
+      typeSpec.bits = 32;
+
+    } else if( strcmp($1, "int8") == 0 ) {
+      typeSpec.simpleType = typeInt8;
+      value.vtype = valInt8;
+      typeSpec.bits = 8;
+
+    } else if( strcmp($1, "int16") == 0 ) {
+      typeSpec.simpleType = typeInt16;
+      value.vtype = valInt16;
+      typeSpec.bits = 16;
+
+    } else if( strcmp($1, "int32") == 0 ) {
+      typeSpec.simpleType = typeInt32;
+      value.vtype = valInt32;
+      typeSpec.bits = 32;
+
+    } else if( strcmp($1, "int64") == 0 ) {
+      typeSpec.simpleType = typeInt64;
+      value.vtype = valInt64;
+      typeSpec.bits = 32;
+
+    } else if( strcmp($1, "char") == 0 ) {
+      typeSpec.simpleType = typeChar;
+      value.vtype = valChar;
+      typeSpec.bits = 8;
+
+    } else if( strcmp($1, "bool") == 0 ) {
+      typeSpec.simpleType = typeBool;
+      value.vtype = valBool;
+      typeSpec.bits = 8;
+    }
+
+    if( DeclareConst(&auxil->symtab, $1, &typeSpec, &value) == 0 ) {
+      Error( "DeclareConst failed\n" );
     }
   }
 
@@ -123,13 +177,25 @@ declare_run_end <-
 constexpr <- character_value / ident / number / bool_value
 
 basetype <-
-  'uint:'[0-9]* {
+  'uint' {
   }
-/ 'uint' {
+/ 'uint8' {
   }
-/ 'int:'[0-9]* {
+/ 'uint16' {
+  }
+/ 'uint32' {
+  }
+/ 'uint64' {
   }
 / 'int' {
+  }
+/ 'int8' {
+  }
+/ 'int16' {
+  }
+/ 'int32' {
+  }
+/ 'int64' {
   }
 / 'char' {
   }
@@ -235,14 +301,37 @@ eof <- !.
   enum BaseType {
     typeNone = 0,
     typeUint,
+    typeUint8,
+    typeUint16,
+    typeUint32,
+    typeUint64,
     typeInt,
+    typeInt8,
+    typeInt16,
+    typeInt32,
+    typeInt64,
     typeChar,
-    typeBool
+    typeBool,
+  lastBaseType
+  };
+
+  enum SimpleType {
+    typeEnum = lastBaseType,
+    typeConst,
+    typeStruct,
+    typeUnion,
+    typeFunc,
+    typeObject,
+    typeConstructor,
+    typeDestructor,
+    typeOperator,
+    typeInterface,
+    typeMethod
   };
 
   typedef struct TypeSpec {
-    char* simpleTypeName;
     unsigned simpleType;
+    unsigned bits;
     unsigned dimensions;
   } TypeSpec;
   /// End typespec definitions
@@ -251,7 +340,15 @@ eof <- !.
   enum ValueType {
     valNone = 0,
     valUint,
+    valUint8,
+    valUint16,
+    valUint32,
+    valUint64,
     valInt,
+    valInt8,
+    valInt16,
+    valInt32,
+    valInt64,
     valChar,
     valBool,
     valString
@@ -301,7 +398,7 @@ eof <- !.
     const struct avl_tree_node* rightNode );
 
   int DeclareConst( SymbolTable* symbolTable,
-    char* constName, unsigned baseType, SymbolValue* constValue );
+    const char* constName, TypeSpec* typeSpec, SymbolValue* constValue );
   void ReleaseConst( Symbol** symbolPtr );
 
   Symbol* Lookup( SymbolTable* symbolTable, const char* symbolName );
@@ -468,10 +565,11 @@ eof <- !.
   }
 
   int DeclareConst( SymbolTable* symbolTable,
-      char* constName, unsigned baseType, SymbolValue* constValue ) {
+      const char* constName, TypeSpec* typeSpec, SymbolValue* constValue ) {
     Symbol* newSymbol = NULL;
 
     if( symbolTable && constName && (*constName) &&
+        typeSpec && typeSpec->simpleType &&
         constValue && constValue->vtype ) {
 
       if( Lookup(symbolTable, constName) ) {

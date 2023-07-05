@@ -6,11 +6,12 @@
 
 program test
 
-const int: i1 = 123
+const int i1 = 123
 const int i2 = i1
-const uint:32 u1 = 123
-const uint u2 = 123
+const uint u1 = 123
+const uint u2 = u1
 const u3 = 456
+const u4 = u1
 const char c1 = 'a'
 const char c2 = ''
 const char c3 = '"'
