@@ -256,6 +256,7 @@ eof <- !.
 ### End grammar definitions
 
 %auxil "ParseState* "
+%value "SymbolValue "
 
 %earlyheader {
 }
@@ -371,6 +372,7 @@ eof <- !.
   };
 
   typedef struct ConstSymbol {
+    TypeSpec typeSpec;
     SymbolValue value;
   } ConstSymbol;
 
