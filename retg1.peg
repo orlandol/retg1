@@ -67,80 +67,29 @@ top_level_declaration <-
 
 # const TYPESPEC IDENT = CONSTEXPR
 declare_const <-
-  'const' _ <basetype?> _ <ident> _ '=' _ <constexpr> {
-    TypeSpec typeSpec = {};
-    SymbolValue value = {};
-
-    typeSpec.simpleType = typeUint;
-    typeSpec.bits = 32;
-    value.vtype = valUint32;
+  init_declare_const _ <basetype?> _ <ident> _ '=' _ <constexpr> {
+    TypeSpec typeSpec = auxil->tempTypeSpec;
+    SymbolValue value = $$;
 
     printf( "CONST[%s] %s = %s\n", $1, $2, $3 );
 
-    if( strcmp($1, "uint") == 0 ) {
-      typeSpec.simpleType = typeUint;
-      value.vtype = valUint;
-      typeSpec.bits = 32;
-
-    } else if( strcmp($1, "uint8") == 0 ) {
-      typeSpec.simpleType = typeUint8;
-      value.vtype = valUint8;
-      typeSpec.bits = 8;
-
-    } else if( strcmp($1, "uint16") == 0 ) {
-      typeSpec.simpleType = typeUint16;
-      value.vtype = valUint16;
-      typeSpec.bits = 16;
-
-    } else if( strcmp($1, "uint32") == 0 ) {
-      typeSpec.simpleType = typeUint32;
-      value.vtype = valUint32;
-      typeSpec.bits = 32;
-
-    } else if( strcmp($1, "uint64") == 0 ) {
-      typeSpec.simpleType = typeUint64;
-      value.vtype = valUint64;
-      typeSpec.bits = 32;
-
-    } else if( strcmp($1, "int") == 0 ) {
-      typeSpec.simpleType = typeInt;
-      value.vtype = valInt;
-      typeSpec.bits = 32;
-
-    } else if( strcmp($1, "int8") == 0 ) {
-      typeSpec.simpleType = typeInt8;
-      value.vtype = valInt8;
-      typeSpec.bits = 8;
-
-    } else if( strcmp($1, "int16") == 0 ) {
-      typeSpec.simpleType = typeInt16;
-      value.vtype = valInt16;
-      typeSpec.bits = 16;
-
-    } else if( strcmp($1, "int32") == 0 ) {
-      typeSpec.simpleType = typeInt32;
-      value.vtype = valInt32;
-      typeSpec.bits = 32;
-
-    } else if( strcmp($1, "int64") == 0 ) {
-      typeSpec.simpleType = typeInt64;
-      value.vtype = valInt64;
-      typeSpec.bits = 32;
-
-    } else if( strcmp($1, "char") == 0 ) {
-      typeSpec.simpleType = typeChar;
-      value.vtype = valChar;
-      typeSpec.bits = 8;
-
-    } else if( strcmp($1, "bool") == 0 ) {
-      typeSpec.simpleType = typeBool;
-      value.vtype = valBool;
-      typeSpec.bits = 8;
-    }
-
-    if( DeclareConst(&auxil->symtab, $1, &typeSpec, &value) == 0 ) {
+    if( DeclareConst(&auxil->symtab, $2, &typeSpec, &value) == 0 ) {
       Error( "DeclareConst failed\n" );
     }
+  }
+
+init_declare_const <-
+  'const' {
+    // Initialize temporary typespec
+    memset( &auxil->tempTypeSpec, 0, sizeof(auxil->tempTypeSpec) );
+    // Default to uint in case base type is omitted
+    auxil->tempTypeSpec.simpleType = typeUint;
+    auxil->tempTypeSpec.bits = 32;
+
+    // Initialize temporary value
+    memset( &$$, 0, sizeof($$) );
+    // Default to uint in case base type is omitted
+    $$.vtype = valUint;
   }
 
 # run block declarations
@@ -174,32 +123,93 @@ declare_run_end <-
     );
   }
 
-constexpr <- character_value / ident / number / bool_value
+constexpr <- char_value / bool_value / const_ident_value / number
+
+const_ident_value <-
+  <[_a-zA-Z][_a-zA-Z0-9]*> {
+    Symbol* constIdent = Lookup(&auxil->symtab, $1);
+
+    if( constIdent ) {
+      printf( "const_ident: Found '%s'\n", constIdent->name );
+      $$ = constIdent->constSym.value;
+    } else {
+      printf( "const_ident: Identifier '%s' not found.\n", $1 );
+      exit(1);
+    }
+  }
 
 basetype <-
   'uint' {
+    auxil->tempTypeSpec.simpleType = typeUint;
+    auxil->tempTypeSpec.bits = 32;
+
+    $$.vtype = valUint;
   }
 / 'uint8' {
+    auxil->tempTypeSpec.simpleType = typeUint;
+    auxil->tempTypeSpec.bits = 8;
+
+    $$.vtype = valUint;
   }
 / 'uint16' {
+    auxil->tempTypeSpec.simpleType = typeUint;
+    auxil->tempTypeSpec.bits = 16;
+
+    $$.vtype = valUint;
   }
 / 'uint32' {
+    auxil->tempTypeSpec.simpleType = typeUint;
+    auxil->tempTypeSpec.bits = 32;
+
+    $$.vtype = valUint;
   }
 / 'uint64' {
+    auxil->tempTypeSpec.simpleType = typeUint;
+    auxil->tempTypeSpec.bits = 64;
+
+    $$.vtype = valUint;
   }
 / 'int' {
+    auxil->tempTypeSpec.simpleType = typeInt;
+    auxil->tempTypeSpec.bits = 32;
+
+    $$.vtype = valInt;
   }
 / 'int8' {
+    auxil->tempTypeSpec.simpleType = typeInt;
+    auxil->tempTypeSpec.bits = 8;
+
+    $$.vtype = valInt;
   }
 / 'int16' {
+    auxil->tempTypeSpec.simpleType = typeInt;
+    auxil->tempTypeSpec.bits = 16;
+
+    $$.vtype = valInt;
   }
 / 'int32' {
+    auxil->tempTypeSpec.simpleType = typeInt;
+    auxil->tempTypeSpec.bits = 32;
+
+    $$.vtype = valInt;
   }
 / 'int64' {
+    auxil->tempTypeSpec.simpleType = typeInt;
+    auxil->tempTypeSpec.bits = 64;
+
+    $$.vtype = valInt;
   }
 / 'char' {
+    auxil->tempTypeSpec.simpleType = typeChar;
+    auxil->tempTypeSpec.bits = 8;
+
+    $$.vtype = valChar;
   }
 / 'bool' {
+    auxil->tempTypeSpec.simpleType = typeBool;
+    auxil->tempTypeSpec.bits = 8;
+
+    $$.vtype = valBool;
   }
 
 # qualified_ident rule adapted from:
@@ -231,9 +241,21 @@ hex_number <- '0x'[_a-fA-F]*
 
 decimal_literal <- [_0-9]*
 
-character_value <- [']['] / ['].['] / ["]["] / ["].["]
+char_value <-
+  ["] <.?> ["] {
+    $$.charValue = *$1;
+  }
+/ ['] <.?> ['] {
+    $$.charValue = *$2;
+  }
 
-bool_value <- 'false' / 'true'
+bool_value <-
+  'false' {
+    $$.boolValue = 0;
+  }
+/ 'true' {
+    $$.boolValue = 1;
+  }
 
 ident <- [_a-zA-Z][_a-zA-Z0-9]*
 
@@ -341,15 +363,7 @@ eof <- !.
   enum ValueType {
     valNone = 0,
     valUint,
-    valUint8,
-    valUint16,
-    valUint32,
-    valUint64,
     valInt,
-    valInt8,
-    valInt16,
-    valInt32,
-    valInt64,
     valChar,
     valBool,
     valString
@@ -432,6 +446,7 @@ eof <- !.
     SourceFile source;
     AsmFile asmgen;
     SymbolTable symtab;
+    TypeSpec tempTypeSpec;
   } ParseState;
   // End parse state auxil declarations
 }
@@ -588,6 +603,7 @@ eof <- !.
 
       if( avl_tree_insert(&symbolTable->root,
           &newSymbol->node, CompareSymbolNames) == NULL ) {
+
         return -1;
       }
 
