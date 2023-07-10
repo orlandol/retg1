@@ -123,7 +123,7 @@ declare_run_end <-
     );
   }
 
-constexpr <- char_value / bool_value / const_ident_value / number
+constexpr <- bool_value / char_value / const_ident_value / number
 
 const_ident_value <-
   <[_a-zA-Z][_a-zA-Z0-9]*> {
@@ -231,23 +231,59 @@ number <-
 / hex_number
 / decimal_literal
 
-binary_number <- '0b'[_0-1]*
+binary_number <- '0b'(binary_digit+)
 
-octal_number <- '0o'[_0-7]*
+binary_digit <-
+  '_' {
+  }
+/ <[0-1]> {
+    $$.uintValue = ($$.uintValue * 2) + ((*$1) - '0');
+  }
 
-decimal_number <- '0d'[_0-9]*
+octal_number <- '0o'(octal_digit+)
 
-hex_number <- '0x'[_a-fA-F]*
+octal_digit <-
+  '_' {
+  }
+/ <[0-7]> {
+    $$.uintValue = ($$.uintValue * 8) + ((*$1) - '0');
+  }
 
-decimal_literal <- [_0-9]*
+decimal_number <- '0d'(decimal_digit+)
+
+decimal_digit <-
+  '_' {
+  }
+/ <[0-9]> {
+    $$.uintValue = ($$.uintValue * 10) + ((*$1) - '0');
+  }
+
+hex_number <- '0x'(hex_digit+)
+
+hex_digit <-
+  '_' {
+  }
+/ <[0-9]> {
+    $$.uintValue = ($$.uintValue * 16) + ((*$1) - '0');
+  }
+/ <[a-f]> {
+    $$.uintValue = ($$.uintValue * 16) + ((*$2) - 'a') + 10;
+  }
+/ <[A-F]> {
+    $$.uintValue = ($$.uintValue * 16) + ((*$3) - 'A') + 10;
+  }
+
+decimal_literal <- decimal_digit+
 
 char_value <-
-  ["] <.?> ["] {
+  ["] <.> ["] {
     $$.charValue = *$1;
   }
-/ ['] <.?> ['] {
+/ ['] <.> ['] {
     $$.charValue = *$2;
   }
+/ ["]["]
+/ ['][']
 
 bool_value <-
   'false' {
