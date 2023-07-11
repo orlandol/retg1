@@ -67,13 +67,14 @@ top_level_declaration <-
 
 # const TYPESPEC IDENT = CONSTEXPR
 declare_const <-
-  init_declare_const _ <basetype?> _ <ident> _ '=' _ <constexpr> {
+  init_declare_const _ <basetype> _ <ident> _ '=' _ <constexpr> {
     TypeSpec typeSpec = auxil->tempTypeSpec;
     SymbolValue value = $$;
 
     printf( "CONST[%s] %s = %s\n", $1, $2, $3 );
 
     if( DeclareConst(&auxil->symtab, $2, &typeSpec, &value) == 0 ) {
+      printf( "In '%s' - ", $2 );
       Error( "DeclareConst failed\n" );
     }
   }
@@ -123,10 +124,16 @@ declare_run_end <-
     );
   }
 
-constexpr <- bool_value / char_value / const_ident_value / number
+constexpr <- char_value / number / const_ident_value
 
 const_ident_value <-
-  <[_a-zA-Z][_a-zA-Z0-9]*> {
+  'false' {
+    $$.boolValue = 0;
+  }
+/ 'true' {
+    $$.boolValue = 1;
+  }
+/ <[_a-zA-Z][_a-zA-Z0-9]*> {
     Symbol* constIdent = Lookup(&auxil->symtab, $1);
 
     if( constIdent ) {
@@ -285,13 +292,13 @@ char_value <-
 / ["]["]
 / ['][']
 
-bool_value <-
-  'false' {
-    $$.boolValue = 0;
-  }
-/ 'true' {
-    $$.boolValue = 1;
-  }
+#bool_value <-
+#  'false' {
+#   $$.boolValue = 0;
+#  }
+#/ '#true' {
+#    $$.boolValue = 1;
+#  }
 
 ident <- [_a-zA-Z][_a-zA-Z0-9]*
 

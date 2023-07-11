@@ -10,8 +10,8 @@ const int i1 = 123
 const int i2 = i1
 const uint u1 = 123
 const uint u2 = u1
-const u3 = 456
-const u4 = u1
+const uint u3 = 456
+const uint u4 = u1
 const char c1 = 'a'
 const char c2 = ''
 const char c3 = '"'
@@ -19,8 +19,8 @@ const char c4 = "a"
 const char c5 = ""
 const char c6 = "'"
 const char c7 = c1
-const bool b1 = false
-const bool b2 = true
+const bool b2 = false
+const bool b1 = true
 const bool b3 = b1
 
 run
