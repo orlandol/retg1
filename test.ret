@@ -19,8 +19,8 @@ const char c4 = "a"
 const char c5 = ""
 const char c6 = "'"
 const char c7 = c1
-const bool b2 = false
-const bool b1 = true
+const bool b1 = false
+const bool b2 = true
 const bool b3 = b1
 
 run

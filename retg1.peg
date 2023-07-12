@@ -67,7 +67,7 @@ top_level_declaration <-
 
 # const TYPESPEC IDENT = CONSTEXPR
 declare_const <-
-  init_declare_const _ <basetype> _ <ident> _ '=' _ <constexpr> {
+  declare_const_init _ <basetype> _ <ident> _ '=' _ <constexpr> {
     TypeSpec typeSpec = auxil->tempTypeSpec;
     SymbolValue value = $$;
 
@@ -77,9 +77,9 @@ declare_const <-
       printf( "In '%s' - ", $2 );
       Error( "DeclareConst failed\n" );
     }
-  }
+}
 
-init_declare_const <-
+declare_const_init <-
   'const' {
     // Initialize temporary typespec
     memset( &auxil->tempTypeSpec, 0, sizeof(auxil->tempTypeSpec) );
@@ -124,23 +124,25 @@ declare_run_end <-
     );
   }
 
-constexpr <- char_value / number / const_ident_value
+constexpr <- char_value / number / bool_value / const_ident_value
 
-const_ident_value <-
+bool_value <-
   'false' {
     $$.boolValue = 0;
   }
 / 'true' {
     $$.boolValue = 1;
   }
-/ <[_a-zA-Z][_a-zA-Z0-9]*> {
+
+const_ident_value <-
+  <[_a-zA-Z][_a-zA-Z0-9]*> {
     Symbol* constIdent = Lookup(&auxil->symtab, $1);
 
     if( constIdent ) {
-      printf( "const_ident: Found '%s'\n", constIdent->name );
       $$ = constIdent->constSym.value;
     } else {
-      printf( "const_ident: Identifier '%s' not found.\n", $1 );
+      SyntaxError( auxil->source.line, auxil->source.column,
+          "Identifier not found\n" );
       exit(1);
     }
   }
@@ -283,14 +285,12 @@ hex_digit <-
 decimal_literal <- decimal_digit+
 
 char_value <-
-  ["] <.> ["] {
+  "'" <(!"'" .)> "'" {
     $$.charValue = *$1;
   }
-/ ['] <.> ['] {
+/ '"' <(!'"' .)> '"' {
     $$.charValue = *$2;
   }
-/ ["]["]
-/ ['][']
 
 #bool_value <-
 #  'false' {
@@ -627,11 +627,15 @@ eof <- !.
   int DeclareConst( SymbolTable* symbolTable,
       const char* constName, TypeSpec* typeSpec, SymbolValue* constValue ) {
     Symbol* newSymbol = NULL;
-
-    if( symbolTable && constName && (*constName) &&
+///
+printf( "DeclareConst(symtab, '%s', typeSpec(%u), constValue(%u = %u)\n", constName, typeSpec ? typeSpec->simpleType : -1, constValue ? constValue->vtype : -1, constValue ? constValue->uintValue : -1 );
+      if( symbolTable && constName && (*constName) &&
         typeSpec && typeSpec->simpleType &&
         constValue && constValue->vtype ) {
-
+/*
+    if( symbolTable && constName && (*constName) &&
+          typeSpec && constValue ) {
+*/
       if( Lookup(symbolTable, constName) ) {
         return 0;
       }
