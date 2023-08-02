@@ -13,7 +13,38 @@ type
 
 type
   Assembler = object
+  { Methods }
+  public
+    constructor Init;
+    destructor Done;
+
+    function Create( fileName : String ): Boolean;
+    procedure Close;
+
+  { Member variables }
+  protected
+    handle : File of Char;
+    isOpen : Boolean;
   end;
+
+constructor Assembler.Init;
+begin
+  isOpen := False;
+end;
+
+destructor Assembler.Done;
+begin
+  IsOpen := False;
+end;
+
+function Assembler.Create( fileName : String ): Boolean;
+begin
+  Create := False;
+end;
+
+procedure Assembler.Close;
+begin
+end;
 
 type
   Parser = object
@@ -41,6 +72,9 @@ type
     isOpen : Boolean;
 
   protected
+    startLine : Cardinal;
+    startColumn : Cardinal;
+
     line : Cardinal;
     column : Cardinal;
 
@@ -55,6 +89,9 @@ constructor Parser.Init;
 begin
   isOpen := False;
 
+  startLine := 1;
+  startColumn := 1;
+
   line := 1;
   column := 1;
 
@@ -68,6 +105,9 @@ end;
 destructor Parser.Done;
 begin
   isOpen := False;
+
+  startLine := 1;
+  startColumn := 1;
 
   line := 1;
   column := 1;
@@ -107,6 +147,9 @@ begin
       nextColumn := 1;
 
       ReadChar;
+
+      startLine := line;
+      startColumn := column;
     end;
   end;
 
@@ -206,8 +249,6 @@ procedure Parser.NextToken;
 var
   commentLevel : Cardinal;
   doneSkip : Boolean;
-  startLine : Cardinal;
-  startColumn : Cardinal;
 
 begin
   if not isOpen
@@ -288,19 +329,19 @@ begin
       doneSkip := False; { Run loop again }
     end;
   until doneSkip;
+
+  startLine := line;
+  startColumn := column;
 end;
 
 procedure Parser.Build;
 var
   identName : String;
-  startLine : Cardinal;
-  startColumn : Cardinal;
 
 begin
   NextToken;
   identName := '';
-  startLine := line;
-  startColumn := column;
+
   if (not ReadIdent(identName)) and (identName <> 'program')
     then SyntaxError( startLine, startColumn, 'Expected keyword program' );
 end;
