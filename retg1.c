@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "avl_tree.h"
+
 /*
  *  String declarations
  */
@@ -41,10 +43,21 @@ unsigned CloseExecutable( Executable** executablePtr );
  */
 typedef struct Parser {
   FILE* handle;
+
+  unsigned line;
+  unsigned column;
+
+  unsigned nextLine;
+  unsigned nextColumn;
+
+  char ch;
+  char nextCh;
 } Parser;
 
 Parser* OpenSource( const String* fileName );
 unsigned CloseSource( Parser** parserPtr );
+
+int ReadChar( Parser* source );
 
 /*
  *  Main program
@@ -53,7 +66,9 @@ unsigned CloseSource( Parser** parserPtr );
 Parser* retFile = NULL;
 Executable* exeFile = NULL;
 
-unsigned InferFileNames( int runArgsCount, const char* runArgs[] );
+unsigned ParseOptions( int runArgsCount, const char* runArgs[] ) {
+  return 3;
+}
 
 void Cleanup( void ) {
   CloseSource( &retFile );
@@ -112,4 +127,8 @@ Parser* OpenSource( const String* fileName ) {
 
 unsigned CloseSource( Parser** parserPtr ) {
   return 2;
+}
+
+int ReadChar( Parser* source ) {
+  return EOF;
 }
