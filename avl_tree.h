@@ -66,7 +66,7 @@ struct avl_tree_node {
 static AVL_INLINE struct avl_tree_node *
 avl_get_parent(const struct avl_tree_node *node)
 {
-	return (struct avl_tree_node *)(node->parent_balance & ~3);
+	return (struct avl_tree_node *)(node->parent_balance & ((uintptr_t)~3));
 }
 
 /* Marks the specified AVL tree node as unlinked from any tree.  */

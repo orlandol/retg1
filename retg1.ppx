@@ -2,22 +2,33 @@
 <settings version="1.0">
 	<category name="retg1.c">
 		<category name="Window">
+			<property name="Left" type="integer">0</property>
+			<property name="Top" type="integer">0</property>
+			<property name="Right" type="integer">1440</property>
+			<property name="Bottom" type="integer">538</property>
+			<property name="Maximized" type="integer">0</property>
+			<property name="Active" type="integer">0</property>
+		</category>
+	</category>
+	<category name="avl_tree.h" />
+	<category name="retlib.h">
+		<category name="Window">
+			<property name="Left" type="integer">26</property>
+			<property name="Top" type="integer">26</property>
+			<property name="Right" type="integer">1466</property>
+			<property name="Bottom" type="integer">564</property>
+			<property name="Maximized" type="integer">0</property>
+			<property name="Active" type="integer">0</property>
+		</category>
+	</category>
+	<category name="retlib.c">
+		<category name="Window">
 			<property name="Left" type="integer">4294967288</property>
 			<property name="Top" type="integer">4294967265</property>
 			<property name="Right" type="integer">1588</property>
 			<property name="Bottom" type="integer">726</property>
 			<property name="Maximized" type="integer">1</property>
 			<property name="Active" type="integer">1</property>
-		</category>
-	</category>
-	<category name="avl_tree.h">
-		<category name="Window">
-			<property name="Left" type="integer">78</property>
-			<property name="Top" type="integer">78</property>
-			<property name="Right" type="integer">1263</property>
-			<property name="Bottom" type="integer">616</property>
-			<property name="Maximized" type="integer">0</property>
-			<property name="Active" type="integer">0</property>
 		</category>
 	</category>
 </settings>
