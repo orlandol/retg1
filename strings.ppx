@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <settings version="1.0">
-	<category name="retg1.c">
+	<category name="strings.c">
 		<category name="Window">
 			<property name="Left" type="integer">4294967288</property>
 			<property name="Top" type="integer">4294967265</property>
