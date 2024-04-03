@@ -12,21 +12,27 @@
 
 #define STRING_PADDING 8 // Includes NULL byte
 
-typedef struct String {
+typedef struct retstringImpl {
   size_t maxLength;
   size_t length;
-  char data[];
-} String;
+  char contents[];
+} retstringImpl;
 
-String* NewString( size_t maxLength );
-String* DuplicateCString( const char* cstring );
-String* DuplicateString( const String*  );
-unsigned ReleaseString( String** stringPtr );
+typedef char* retstring;
 
-String* AppendString( String* destString, const char* sourceString );
+retstring NewString( size_t maxLength );
+retstring DuplicateCString( const char* cstring );
+retstring DuplicateString( const retstring  );
+unsigned ReleaseString( retstring* retstringPtr );
 
-int CompareToCString( String* left, const char* right );
-int CompareStrings( String* left, String* right );
+size_t StringLength( retstring source );
+size_t StringReservedLength( retstring source );
+
+retstring AppendChar( retstring destString, char ch );
+retstring AppendCString( retstring destString, const char* sourceString );
+
+int CompareToCString( retstring left, const char* right );
+int CompareStrings( retstring left, retstring right );
 
 /*
  *  Symbol table declarations
@@ -45,7 +51,7 @@ typedef struct Executable {
   FILE* handle;
 } Executable;
 
-Executable* CreateExecutable( const String* fileName );
+Executable* CreateExecutable( const retstring fileName );
 unsigned CloseExecutable( Executable** executablePtr );
 
 /*
@@ -64,7 +70,7 @@ typedef struct Parser {
   char nextCh;
 } Parser;
 
-Parser* OpenSource( const String* fileName );
+Parser* OpenSource( const retstring fileName );
 unsigned CloseSource( Parser** parserPtr );
 
 int ReadChar( Parser* source );

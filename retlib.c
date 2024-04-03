@@ -7,46 +7,62 @@
  *  String implementation
  */
 
-String* NewString( size_t maxLength ) {
-  String* newString = NULL;
-  size_t newMaxLength = 0;
-  size_t newPaddedMaxLength = 0;
+retstring NewString( size_t maxLength ) {
+  retstringImpl* newString = NULL;
+  size_t stringSize = 0;
+  size_t paddedMaxLength = 0;
 
-  newMaxLength = maxLength + 1;
-  newPaddedMaxLength = (newMaxLength + 8) & ((size_t)~7);
+  paddedMaxLength = (maxLength + 8) & (~((size_t)7));
 
-  if( (sizeof(String) + newMaxLength) >= sizeof(String) ) {
-    newString = calloc(1, sizeof(String) + newPaddedMaxLength);
+  stringSize = sizeof(retstring) + paddedMaxLength;
 
+  if( stringSize > paddedMaxLength ) {
+    newString = calloc(1, stringSize);
     if( newString ) {
-      newString->maxLength = newPaddedMaxLength;
+      newString->maxLength = paddedMaxLength;
+
+      return newString->contents;
     }
   }
 
-  return newString;
-}
-
-String* DuplicateCString( const char* cstring ) {
   return NULL;
 }
 
-String* DuplicateString( const String* sourceString ) {
+retstring DuplicateCString( const char* cstring ) {
   return NULL;
 }
 
-unsigned ReleaseString( String** stringPtr ) {
+retstring DuplicateString( const retstring sourceString ) {
+  return NULL;
+}
+
+unsigned ReleaseString( retstring* retstringPtr ) {
   return 2;
 }
 
-String* AppendString( String* destString, const char* sourceString ) {
+size_t StringLength( retstring source ) {
+  return (source ? ((retstringImpl*)(source -
+    sizeof(retstringImpl)))->length : 0);
+}
+
+size_t StringReservedLength( retstring source ) {
+  return (source ? ((retstringImpl*)(source -
+    sizeof(retstringImpl)))->maxLength : 0);
+}
+
+retstring AppendChar( retstring destString, char ch ) {
   return NULL;
 }
 
-int CompareToCString( String* left, const char* right ) {
+retstring AppendString( retstring destString, const char* sourceString ) {
+  return NULL;
+}
+
+int CompareToCString( retstring left, const char* right ) {
   return 3;
 }
 
-int CompareStrings( String* left, String* right ) {
+int CompareStrings( retstring left, retstring right ) {
   return 3;
 }
 
@@ -58,7 +74,7 @@ int CompareStrings( String* left, String* right ) {
  *  Code generator implementation
  */
 
-Executable* CreateExecutable( const String* fileName ) {
+Executable* CreateExecutable( const retstring fileName ) {
   return NULL;
 }
 
@@ -70,7 +86,7 @@ unsigned CloseExecutable( Executable** executablePtr ) {
  *  Parser implementation
  */
 
-Parser* OpenSource( const String* fileName ) {
+Parser* OpenSource( const retstring fileName ) {
   return NULL;
 }
 
