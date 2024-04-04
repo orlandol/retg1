@@ -13,7 +13,7 @@
 #define STRING_PADDING 8 // Includes NULL byte
 
 typedef struct retstringImpl {
-  size_t maxLength;
+  size_t reservedLength;
   size_t length;
   char contents[];
 } retstringImpl;

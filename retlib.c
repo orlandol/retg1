@@ -7,19 +7,19 @@
  *  String implementation
  */
 
-retstring NewString( size_t maxLength ) {
+retstring NewString( size_t reserveLength ) {
   retstringImpl* newString = NULL;
   size_t stringSize = 0;
-  size_t paddedMaxLength = 0;
+  size_t paddedReservedLength = 0;
 
-  paddedMaxLength = (maxLength + 8) & (~((size_t)7));
+  paddedReservedLength = (reserveLength + 8) & (~((size_t)7));
 
-  stringSize = sizeof(retstring) + paddedMaxLength;
+  stringSize = sizeof(retstring) + paddedReservedLength;
 
-  if( stringSize > paddedMaxLength ) {
+  if( stringSize > paddedReservedLength ) {
     newString = calloc(1, stringSize);
     if( newString ) {
-      newString->maxLength = paddedMaxLength;
+      newString->reservedLength = paddedReservedLength;
 
       return newString->contents;
     }
@@ -37,20 +37,35 @@ retstring DuplicateString( const retstring sourceString ) {
 }
 
 unsigned ReleaseString( retstring* retstringPtr ) {
-  return 2;
+  if( retstringPtr == NULL ) { return 1; }
+
+  if( (*retstringPtr) ) {
+    free( (*retstringPtr) );
+    (*retstringPtr) = NULL;
+  }
+
+  return 0;
 }
 
 size_t StringLength( retstring source ) {
+  // Read length from retstring's negative offset header
   return (source ? ((retstringImpl*)(source -
     sizeof(retstringImpl)))->length : 0);
 }
 
 size_t StringReservedLength( retstring source ) {
+  // Read reserved length from retstring's negative offset header
   return (source ? ((retstringImpl*)(source -
-    sizeof(retstringImpl)))->maxLength : 0);
+    sizeof(retstringImpl)))->reservedLength : 0);
 }
 
 retstring AppendChar( retstring destString, char ch ) {
+  retstringImpl* destImpl = NULL;
+
+  if( destString == NULL ) { return NULL; }
+
+  destImpl = (retstringImpl*)(destString - sizeof(retstringImpl));
+
   return NULL;
 }
 
