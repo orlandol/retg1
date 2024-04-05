@@ -30,6 +30,7 @@ size_t StringReservedLength( retstring source );
 
 retstring AppendChar( retstring destString, char ch );
 retstring AppendCString( retstring destString, const char* sourceString );
+retstring AppendString( retstring destString, retstring sourceString );
 
 int CompareToCString( retstring left, const char* right );
 int CompareStrings( retstring left, retstring right );

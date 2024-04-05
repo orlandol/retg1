@@ -1,4 +1,6 @@
 ﻿
+#include <string.h>
+
 #include "avl_tree.h"
 
 #include "retlib.h"
@@ -29,7 +31,23 @@ retstring NewString( size_t reserveLength ) {
 }
 
 retstring DuplicateCString( const char* cstring ) {
-  return NULL;
+  retstring newString = NULL;
+  retstringImpl* newStringImpl = NULL;
+  size_t cstringLen;
+
+  if( cstring == NULL ) { return NULL; }
+
+  cstringLen = strlen(cstring);
+
+  newString = NewString(cstringLen);
+  if( newString == NULL ) { return NULL; }
+  newStringImpl = (retstringImpl*)(newString - sizeof(retstringImpl));
+
+  memcpy( newString, cstring, cstringLen * sizeof(char) );
+
+  newStringImpl->length += cstringLen;
+
+  return newString;
 }
 
 retstring DuplicateString( const retstring sourceString ) {
@@ -61,15 +79,45 @@ size_t StringReservedLength( retstring source ) {
 
 retstring AppendChar( retstring destString, char ch ) {
   retstringImpl* destImpl = NULL;
+  retstringImpl* tmpImpl = NULL;
+  size_t destReservedLength = 0;
+  size_t destLength = 0;
+  size_t newReservedLength = 0;
+  size_t newLength = 0;
+  size_t newSize = 0;
 
   if( destString == NULL ) { return NULL; }
 
   destImpl = (retstringImpl*)(destString - sizeof(retstringImpl));
 
+  destReservedLength = destImpl->reservedLength;
+  destLength = destImpl->length;
+
+  newReservedLength = (destReservedLength + 8) + (~(size_t)7);
+  newLength = destLength + 1;
+
+  if( newLength == destReservedLength ) {
+    newSize = sizeof(retstringImpl) + newReservedLength;
+    if( newSize < newReservedLength ) { return NULL; }
+
+    tmpImpl = realloc(destImpl, newSize);
+    if( tmpImpl == NULL ) { return NULL; }
+
+    destImpl = tmpImpl;
+    destImpl->reservedLength = newReservedLength;
+  }
+
+  destString[destLength] = ch;
+  destImpl->length = newLength;
+
+  return destImpl->contents;
+}
+
+retstring AppendCString( retstring destString, const char* sourceString ) {
   return NULL;
 }
 
-retstring AppendString( retstring destString, const char* sourceString ) {
+retstring AppendString( retstring destString, retstring sourceString ) {
   return NULL;
 }
 
