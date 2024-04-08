@@ -51,7 +51,27 @@ retstring DuplicateCString( const char* cstring ) {
 }
 
 retstring DuplicateString( const retstring sourceString ) {
-  return NULL;
+  retstringImpl* newStringImpl = NULL;
+  retstringImpl* sourceStringImpl = NULL;
+
+  if( sourceString == NULL ) { return NULL; }
+
+  sourceStringImpl = (retstringImpl*)(sourceString
+    - sizeof(retstringImpl));
+
+  // reservedLength must always be a multiple of 8
+  if( sourceStringImpl->reservedLength & 7 ) {
+    return NULL; }
+
+  newStringImpl = calloc(1, sourceStringImpl->reservedLength);
+  if( newStringImpl == NULL ) { return NULL; }
+
+  *newStringImpl = *sourceStringImpl;
+
+  memcpy( newStringImpl->contents, sourceStringImpl->contents,
+    sourceStringImpl->reservedLength );
+
+  return newStringImpl->contents;
 }
 
 unsigned ReleaseString( retstring* retstringPtr ) {
@@ -67,14 +87,16 @@ unsigned ReleaseString( retstring* retstringPtr ) {
 
 size_t StringLength( retstring source ) {
   // Read length from retstring's negative offset header
-  return (source ? ((retstringImpl*)(source -
-    sizeof(retstringImpl)))->length : 0);
+  retstringImpl* sourceImpl = source ? ((retstringImpl*)(source
+    - sizeof(retstringImpl))) : NULL;
+  return (sourceImpl ? sourceImpl->length : 0);
 }
 
 size_t StringReservedLength( retstring source ) {
   // Read reserved length from retstring's negative offset header
-  return (source ? ((retstringImpl*)(source -
-    sizeof(retstringImpl)))->reservedLength : 0);
+  retstringImpl* sourceImpl = source ? ((retstringImpl*)(source
+    - sizeof(retstringImpl))) : NULL;
+  return (sourceImpl ? sourceImpl->reservedLength : 0);
 }
 
 retstring AppendChar( retstring destString, char ch ) {
