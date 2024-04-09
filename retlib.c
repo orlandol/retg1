@@ -140,6 +140,10 @@ retstring AppendCString( retstring destString, const char* sourceString ) {
 }
 
 retstring AppendString( retstring destString, retstring sourceString ) {
+  // The resulting reservedLength will be the greater of either
+  // destReservedLength or (destLength + sourceLength + padding)
+  // to prevent excessive memory consumption by adding
+  // sourceReservedLength to destReservedLength on each call
   return NULL;
 }
 

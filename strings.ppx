@@ -2,12 +2,12 @@
 <settings version="1.0">
 	<category name="strings.c">
 		<category name="Window">
-			<property name="Left" type="integer">4294967288</property>
-			<property name="Top" type="integer">4294967265</property>
-			<property name="Right" type="integer">1588</property>
-			<property name="Bottom" type="integer">726</property>
-			<property name="Maximized" type="integer">1</property>
-			<property name="Active" type="integer">1</property>
+			<property name="Left" type="integer">0</property>
+			<property name="Top" type="integer">0</property>
+			<property name="Right" type="integer">1440</property>
+			<property name="Bottom" type="integer">538</property>
+			<property name="Maximized" type="integer">0</property>
+			<property name="Active" type="integer">0</property>
 		</category>
 	</category>
 	<category name="retlib.h">
@@ -22,12 +22,12 @@
 	</category>
 	<category name="retlib.c">
 		<category name="Window">
-			<property name="Left" type="integer">52</property>
-			<property name="Top" type="integer">52</property>
-			<property name="Right" type="integer">1492</property>
-			<property name="Bottom" type="integer">590</property>
-			<property name="Maximized" type="integer">0</property>
-			<property name="Active" type="integer">0</property>
+			<property name="Left" type="integer">4294967288</property>
+			<property name="Top" type="integer">4294967265</property>
+			<property name="Right" type="integer">1588</property>
+			<property name="Bottom" type="integer">726</property>
+			<property name="Maximized" type="integer">1</property>
+			<property name="Active" type="integer">1</property>
 		</category>
 	</category>
 </settings>
