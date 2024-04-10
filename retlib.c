@@ -60,8 +60,7 @@ retstring DuplicateString( const retstring sourceString ) {
     - sizeof(retstringImpl));
 
   // reservedLength must always be a multiple of 8
-  if( sourceStringImpl->reservedLength & 7 ) {
-    return NULL; }
+  if( sourceStringImpl->reservedLength & 7 ) { return NULL; }
 
   newStringImpl = calloc(1, sourceStringImpl->reservedLength);
   if( newStringImpl == NULL ) { return NULL; }
@@ -97,6 +96,10 @@ size_t StringReservedLength( retstring source ) {
   retstringImpl* sourceImpl = source ? ((retstringImpl*)(source
     - sizeof(retstringImpl))) : NULL;
   return (sourceImpl ? sourceImpl->reservedLength : 0);
+}
+
+unsigned ClearString( retstring destString ) {
+  return 2;
 }
 
 retstring AppendChar( retstring destString, char ch ) {
@@ -136,6 +139,26 @@ retstring AppendChar( retstring destString, char ch ) {
 }
 
 retstring AppendCString( retstring destString, const char* sourceString ) {
+  retstringImpl* destStringImpl = NULL;
+  size_t newDestReservedLength = 0;
+  size_t newDestLength = 0;
+  size_t sourceLength = 0;
+  size_t availableLength = 0;
+
+  if( destString == NULL ) { return NULL; }
+  if( sourceString == NULL ) { return NULL; }
+
+  destStringImpl = (retstringImpl*)(destString - sizeof(retstringImpl));
+
+  sourceLength = strlen(sourceString);
+
+  // [Logic 02]: Check for potential wraparound
+  availableLength = ((size_t)(-1)) - destStringImpl->length - 1;
+  if( availableLength < sourceLength ) { return NULL; }
+
+  newDestLength = destStringImpl->length + sourceLength;
+
+///TODO: Complete AppendCString
   return NULL;
 }
 

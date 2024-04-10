@@ -28,6 +28,8 @@ unsigned ReleaseString( retstring* retstringPtr );
 size_t StringLength( retstring source );
 size_t StringReservedLength( retstring source );
 
+unsigned ClearString( retstring destString );
+
 retstring AppendChar( retstring destString, char ch );
 retstring AppendCString( retstring destString, const char* sourceString );
 retstring AppendString( retstring destString, retstring sourceString );

@@ -16,6 +16,18 @@ int main( int argc, char* argv[] ) {
 
   printf( "[Starting string tests]\n" );
 
+  ///TODO: Test edge calculation logic used within string functions
+
+  {
+  // [Logic 01]: Test AppendChar assumptions
+  }
+
+  {
+  // [Logic 02]: Test AppendCString and AppendString assumptions
+  size_t availableLength = 0;
+  size_t newLength = 0;
+  }
+
   // NewString(non-zero) test cases
   s1 = NewString(5);
   if( s1 == NULL ) {
