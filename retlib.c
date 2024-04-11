@@ -99,7 +99,18 @@ size_t StringReservedLength( retstring source ) {
 }
 
 unsigned ClearString( retstring destString ) {
-  return 2;
+  retstringImpl* destStringImpl = NULL;
+
+  if( destString == NULL ) { return 1; }
+
+  destStringImpl = (retstringImpl*)(destString - sizeof(retstringImpl));
+
+  if( destStringImpl->length ) {
+    memset( destStringImpl->contents, 0, destStringImpl->length );
+    destStringImpl->length = 0;
+  }
+
+  return 0;
 }
 
 retstring AppendChar( retstring destString, char ch ) {
