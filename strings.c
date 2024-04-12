@@ -16,6 +16,15 @@ int main( int argc, char* argv[] ) {
 
   printf( "[Starting string tests]\n" );
 
+  switch( sizeof(char) ) {
+  case 1: // sizeof(char) == 1
+    break;
+
+  default:
+    printf( "[Cancelling tests because sizeof(char) is %u\n", sizeof(char) );
+    exit(1);
+  }
+
   ///TODO: Test edge calculation logic used within string functions
 
   {
@@ -26,6 +35,11 @@ int main( int argc, char* argv[] ) {
   // [Logic 02]: Test AppendCString and AppendString assumptions
   size_t availableLength = 0;
   size_t newLength = 0;
+
+  // [Logic 03]: Test AppendCString and AppendString assumptions
+
+  // [Logic 04]: Test AppendCString and AppendString assumptions
+  size_t newSize = 0;
   }
 
   // NewString(non-zero) test cases
@@ -98,6 +112,9 @@ int main( int argc, char* argv[] ) {
   }
 
   ///TODO: AppendCString test
+  tmpstr = AppendCString(s1, "ello, ");
+  s1 = tmpstr ? tmpstr : s1;
+
   ///TODO: AppendChar resize trigger test
   ///TODO: AppendString test
 

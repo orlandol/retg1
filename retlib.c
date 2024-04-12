@@ -151,10 +151,12 @@ retstring AppendChar( retstring destString, char ch ) {
 
 retstring AppendCString( retstring destString, const char* sourceString ) {
   retstringImpl* destStringImpl = NULL;
+  retstringImpl* tempStringImpl = NULL;
   size_t newDestReservedLength = 0;
   size_t newDestLength = 0;
   size_t sourceLength = 0;
   size_t availableLength = 0;
+  size_t newSize = 0;
 
   if( destString == NULL ) { return NULL; }
   if( sourceString == NULL ) { return NULL; }
@@ -163,14 +165,33 @@ retstring AppendCString( retstring destString, const char* sourceString ) {
 
   sourceLength = strlen(sourceString);
 
-  // [Logic 02]: Check for potential wraparound
+  // [Logic 02]: Check for potential wraparound of new length
   availableLength = ((size_t)(-1)) - destStringImpl->length - 1;
   if( availableLength < sourceLength ) { return NULL; }
 
+  // [Logic 03]: Check for potential wraparound of new reserved length
   newDestLength = destStringImpl->length + sourceLength;
+  newDestReservedLength = (newDestLength + 8) & (~(size_t)-1);
 
-///TODO: Complete AppendCString
-  return NULL;
+  if( destStringImpl->reservedLength < newDestReservedLength ) {
+    // [Logic 04]: Check for potential wraparound of new size
+    newSize = sizeof(retstringImpl) + newDestReservedLength;
+    if( newSize < newDestLength ) { return NULL; }
+
+    tempStringImpl = realloc(destStringImpl, newSize);
+    if( tempStringImpl == NULL ) { return NULL; }
+
+    destStringImpl = tempStringImpl;
+    destStringImpl->reservedLength = newDestReservedLength;
+   }
+
+  memcpy( &destStringImpl->contents[destStringImpl->length],
+    sourceString, sourceLength );
+
+  destStringImpl->contents[newDestLength] = 0;
+  destStringImpl->length = newDestLength;
+
+  return destStringImpl->contents;
 }
 
 retstring AppendString( retstring destString, retstring sourceString ) {
