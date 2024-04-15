@@ -116,7 +116,14 @@ int main( int argc, char* argv[] ) {
   s1 = tmpstr ? tmpstr : s1;
 
   ///TODO: AppendChar resize trigger test
+  tmpstr = AppendChar(s1, 'W');
+  s1 = tmpstr ? tmpstr : s1;
+
   ///TODO: AppendString test
+  s2 = DuplicateCString("orld!");
+  tmpstr = AppendString(s1, s2);
+  s1 = tmpstr ? tmpstr : s1;
+  ReleaseString( &s2 );
 
   uresult = ReleaseString(&s1);
   switch( uresult ) {

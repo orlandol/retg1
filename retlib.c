@@ -73,6 +73,10 @@ retstring DuplicateString( const retstring sourceString ) {
   return newStringImpl->contents;
 }
 
+retstring CompactString( retstring destString ) {
+  return NULL;
+}
+
 unsigned ReleaseString( retstring* retstringPtr ) {
   if( retstringPtr == NULL ) { return 1; }
 
@@ -199,15 +203,63 @@ retstring AppendString( retstring destString, retstring sourceString ) {
   // destReservedLength or (destLength + sourceLength + padding)
   // to prevent excessive memory consumption by adding
   // sourceReservedLength to destReservedLength on each call
-  return NULL;
+  retstringImpl* destStringImpl = NULL;
+  retstringImpl* sourceStringImpl = NULL;
+  retstringImpl* tempStringImpl = NULL;
+  size_t newDestReservedLength = 0;
+  size_t newDestLength = 0;
+  size_t availableLength = 0;
+  size_t newSize = 0;
+
+  if( destString == NULL ) { return NULL; }
+  if( sourceString == NULL ) { return NULL; }
+
+  destStringImpl = (retstringImpl*)(destString - sizeof(retstringImpl));
+  sourceStringImpl = (retstringImpl*)(sourceString - sizeof(retstringImpl));
+
+  // [Logic 02]: Check for potential wraparound of new length
+  availableLength = ((size_t)(-1)) - destStringImpl->length - 1;
+  if( availableLength < sourceStringImpl->length ) { return NULL; }
+
+  // [Logic 03]: Check for potential wraparound of new reserved length
+  newDestLength = destStringImpl->length + sourceStringImpl->length;
+  newDestReservedLength = (newDestLength + 8) & (~(size_t)-1);
+
+  if( destStringImpl->reservedLength < newDestReservedLength ) {
+    // [Logic 04]: Check for potential wraparound of new size
+    newSize = sizeof(retstringImpl) + newDestReservedLength;
+    if( newSize < newDestLength ) { return NULL; }
+
+    tempStringImpl = realloc(destStringImpl, newSize);
+    if( tempStringImpl == NULL ) { return NULL; }
+
+    destStringImpl = tempStringImpl;
+    destStringImpl->reservedLength = newDestReservedLength;
+   }
+
+  memcpy( &destStringImpl->contents[destStringImpl->length],
+    sourceString, sourceStringImpl->length );
+
+  destStringImpl->contents[newDestLength] = 0;
+  destStringImpl->length = newDestLength;
+
+  return destStringImpl->contents;
 }
 
 int CompareToCString( retstring left, const char* right ) {
-  return 3;
+  return (left && right) ? strcmp(left, right) : (255 + 3);
 }
 
 int CompareStrings( retstring left, retstring right ) {
-  return 3;
+  return (left && right) ? strcmp(left, right) : (255 + 3);
+}
+
+int CompareToCStringNC( retstring left, const char* right ) {
+  return (left && right) ? _stricmp(left, right) : (255 + 3);
+}
+
+int CompareStringsNC( retstring left, retstring right ) {
+  return (left && right) ? _stricmp(left, right) : (255 + 3);
 }
 
 /*

@@ -23,6 +23,7 @@ typedef char* retstring;
 retstring NewString( size_t maxLength );
 retstring DuplicateCString( const char* cstring );
 retstring DuplicateString( const retstring  );
+retstring CompactString( retstring destString );
 unsigned ReleaseString( retstring* retstringPtr );
 
 size_t StringLength( retstring source );
@@ -36,6 +37,9 @@ retstring AppendString( retstring destString, retstring sourceString );
 
 int CompareToCString( retstring left, const char* right );
 int CompareStrings( retstring left, retstring right );
+
+int CompareToCStringNC( retstring left, const char* right );
+int CompareStringsNC( retstring left, retstring right );
 
 /*
  *  Symbol table declarations
