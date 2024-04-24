@@ -156,16 +156,19 @@ int main( int argc, char* argv[] ) {
 
   ///TODO: AppendCString test
   tmpstr = AppendCString(s1, "ello, ");
+  TestPointer( 12, "AppendCString(s1, 'ello, '", tmpstr );
   s1 = tmpstr ? tmpstr : s1;
 
   ///TODO: AppendChar resize trigger test
   tmpstr = AppendChar(s1, 'W');
+  TestPointer( 13, "AppendChar(s1, 'W')", tmpstr );
   s1 = tmpstr ? tmpstr : s1;
 
   ///TODO: AppendString test
   s2 = DuplicateCString("orld!");
   tmpstr = AppendString(s1, s2);
   s1 = tmpstr ? tmpstr : s1;
+
   uresult = ReleaseString( &s2 );
   TestReleaseString( 12, uresult, "&s2", s2 );
 
