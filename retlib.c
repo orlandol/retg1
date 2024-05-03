@@ -74,7 +74,34 @@ retstring DuplicateString( const retstring sourceString ) {
 }
 
 retstring CompactString( retstring destString ) {
-  return NULL;
+  retstringImpl* destStringImpl = NULL;
+  retstringImpl* compactStringImpl = NULL;
+  size_t newReservedLength;
+  size_t newReservedSize;
+
+  if( destString == NULL ) { return NULL; }
+
+  destStringImpl = (retstringImpl*)(destString - sizeof(retstringImpl));
+
+  if( destStringImpl->reservedLength < destStringImpl->length ) {
+    return NULL;
+  }
+
+  newReservedLength = (destStringImpl->length + 8) & (~(size_t)7);
+  if( newReservedLength < destStringImpl->length ) { return NULL; }
+
+  if( destStringImpl->reservedLength == newReservedLength ) {
+    return destStringImpl->contents;
+  }
+
+  newReservedSize = newReservedLength + sizeof(retstringImpl);
+
+  compactStringImpl = realloc(destStringImpl, newReservedSize);
+  if( compactStringImpl == NULL ) { return NULL; }
+
+  compactStringImpl->reservedLength = newReservedLength;
+
+  return compactStringImpl->contents;
 }
 
 unsigned ReleaseString( retstring* retstringPtr ) {

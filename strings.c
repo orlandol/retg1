@@ -56,6 +56,23 @@ void TestEqual( unsigned testNumber,
   }
 }
 
+void TestClearString( unsigned testNumber, unsigned result,
+  const char* pointerStatement ) {
+
+  switch( result ) {
+  case 0: /* expected */ break;
+  case 1:
+    printf( "[%02u] ClearString('%s') received a NULL reference\n",
+      testNumber, pointerStatement );
+    errorCount++;
+    break;
+  default:
+    printf( "[%02u] ClearString('%s') returned an unexpected result"
+      "code of %u\n", testNumber, pointerStatement, result );
+    errorCount++;
+  }
+}
+
 void TestReleaseString( unsigned testNumber, unsigned result,
   const char* pointerStatement, void* pointer ) {
 
@@ -94,7 +111,7 @@ int main( int argc, char* argv[] ) {
     break;
 
   default:
-    printf( "[Cancelling tests because sizeof(char) is %u\n", sizeof(char) );
+    printf( "[Cancelling tests because sizeof(char) is %u]\n", sizeof(char) );
     exit(1);
   }
 
@@ -156,7 +173,7 @@ int main( int argc, char* argv[] ) {
 
   ///TODO: AppendCString test
   tmpstr = AppendCString(s1, "ello, ");
-  TestPointer( 12, "AppendCString(s1, 'ello, '", tmpstr );
+  TestPointer( 12, "AppendCString(s1, 'ello, ')", tmpstr );
   s1 = tmpstr ? tmpstr : s1;
 
   ///TODO: AppendChar resize trigger test
@@ -169,53 +186,62 @@ int main( int argc, char* argv[] ) {
   tmpstr = AppendString(s1, s2);
   s1 = tmpstr ? tmpstr : s1;
 
+  ///TODO: Clear test
+  uresult = ClearString(s1);
+  TestClearString( 14, uresult, "s1" );
+
+  ///TODO: Compact test
+  tmpstr = CompactString(s1);
+  s1 = tmpstr ? tmpstr : s1;
+  TestPointer( 15, "CompactString(s1)", tmpstr );
+
   uresult = ReleaseString( &s2 );
-  TestReleaseString( 12, uresult, "&s2", s2 );
+  TestReleaseString( 16, uresult, "&s2", s2 );
 
   uresult = ReleaseString(&s1);
-  TestReleaseString( 13, uresult, "&s1", s1 );
+  TestReleaseString( 17, uresult, "&s1", s1 );
 
   // DuplicateCString tests
   s1 = DuplicateCString("Hello, world!");
-  TestPointer( 14, "DuplicateCString('Hello, world!')", s1 );
+  TestPointer( 18, "DuplicateCString('Hello, world!')", s1 );
 
   reservedLength = StringReservedLength(s1);
-  TestValue( 15, "StringReservedLength(s1)", reservedLength, 16 );
+  TestValue( 19, "StringReservedLength(s1)", reservedLength, 16 );
 
   length = StringLength(s1);
-  TestValue( 16, "StringLength(s1)", length, 13 );
+  TestValue( 20, "StringLength(s1)", length, 13 );
 
   clength = strlen(s1);
-  TestValue( 17, "strlen(s1)", clength, 13 );
+  TestValue( 21, "strlen(s1)", clength, 13 );
 
-  TestGreater( 18, "StringReservedLEngth(s1)", reservedLength,
+  TestGreater( 22, "StringReservedLEngth(s1)", reservedLength,
     "StringLEngth(s1)", length );
 
-  TestEqual( 19, "StringLength(s1)", length, "strlen(s1)", clength );
+  TestEqual( 23, "StringLength(s1)", length, "strlen(s1)", clength );
 
   // DuplicateString tests
   s2 = DuplicateString(s1);
-  TestPointer( 20, "DuplicateString(s1)", s2 );
+  TestPointer( 24, "DuplicateString(s1)", s2 );
 
   reservedLength = StringReservedLength(s2);
-  TestValue( 21, "StringReservedLength(s2)", reservedLength, 16 );
+  TestValue( 25, "StringReservedLength(s2)", reservedLength, 16 );
 
   length = StringLength(s2);
-  TestValue( 22, "StringLength(s2)", length, 13 );
+  TestValue( 26, "StringLength(s2)", length, 13 );
 
   clength = strlen(s2);
-  TestValue( 23, "strlen(s2)", clength, 13 );
+  TestValue( 27, "strlen(s2)", clength, 13 );
 
-  TestGreater( 24, "StringReservedLength(s1)", reservedLength,
+  TestGreater( 28, "StringReservedLength(s1)", reservedLength,
     "StringLength(s1)", length );
 
-  TestEqual( 25, "StringLEngth(s1)", length, "strlen(s1)", clength );
+  TestEqual( 29, "StringLEngth(s1)", length, "strlen(s1)", clength );
 
   uresult = ReleaseString(&s1);
-  TestReleaseString( 26, uresult, "&s1", s1 );
+  TestReleaseString( 30, uresult, "&s1", s1 );
 
   uresult = ReleaseString(&s2);
-  TestReleaseString( 27, uresult, "&s2", s2 );
+  TestReleaseString( 31, uresult, "&s2", s2 );
 
   if( errorCount ) {
     printf( "[String tests failed with %u errors]\n", errorCount );
