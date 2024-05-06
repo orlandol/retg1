@@ -160,10 +160,10 @@ retstring AppendChar( retstring destString, char ch ) {
   destReservedLength = destImpl->reservedLength;
   destLength = destImpl->length;
 
-  newReservedLength = (destReservedLength + 8) + (~(size_t)7);
+  newReservedLength = (destReservedLength + 8) & (~(size_t)7);
   newLength = destLength + 1;
 
-  if( newLength == destReservedLength ) {
+  if( newLength >= destReservedLength ) {
     newSize = sizeof(retstringImpl) + newReservedLength;
     if( newSize < newReservedLength ) { return NULL; }
 
@@ -175,6 +175,7 @@ retstring AppendChar( retstring destString, char ch ) {
   }
 
   destString[destLength] = ch;
+  destString[newLength] = '\0';
   destImpl->length = newLength;
 
   return destImpl->contents;
@@ -202,7 +203,7 @@ retstring AppendCString( retstring destString, const char* sourceString ) {
 
   // [Logic 03]: Check for potential wraparound of new reserved length
   newDestLength = destStringImpl->length + sourceLength;
-  newDestReservedLength = (newDestLength + 8) & (~(size_t)-1);
+  newDestReservedLength = (newDestLength + 8) & (~(size_t)7);
 
   if( destStringImpl->reservedLength < newDestReservedLength ) {
     // [Logic 04]: Check for potential wraparound of new size
@@ -226,10 +227,6 @@ retstring AppendCString( retstring destString, const char* sourceString ) {
 }
 
 retstring AppendString( retstring destString, retstring sourceString ) {
-  // The resulting reservedLength will be the greater of either
-  // destReservedLength or (destLength + sourceLength + padding)
-  // to prevent excessive memory consumption by adding
-  // sourceReservedLength to destReservedLength on each call
   retstringImpl* destStringImpl = NULL;
   retstringImpl* sourceStringImpl = NULL;
   retstringImpl* tempStringImpl = NULL;
@@ -250,8 +247,12 @@ retstring AppendString( retstring destString, retstring sourceString ) {
 
   // [Logic 03]: Check for potential wraparound of new reserved length
   newDestLength = destStringImpl->length + sourceStringImpl->length;
-  newDestReservedLength = (newDestLength + 8) & (~(size_t)-1);
+  newDestReservedLength = (newDestLength + 8) & (~(size_t)7);
 
+  // The resulting reservedLength will be the greater of either
+  // destReservedLength or (destLength + sourceLength + padding)
+  // to prevent excessive memory consumption by adding
+  // sourceReservedLength to destReservedLength on each call
   if( destStringImpl->reservedLength < newDestReservedLength ) {
     // [Logic 04]: Check for potential wraparound of new size
     newSize = sizeof(retstringImpl) + newDestReservedLength;
