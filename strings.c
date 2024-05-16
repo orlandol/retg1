@@ -145,12 +145,38 @@ int main( int argc, char* argv[] ) {
     newReservedLength = (destReservedLength + 8) & (~(size_t)7);
     newLength = destLength + 1;
 
+    newSize = newReservedLength + sizeof(retstringImpl);
+
+    if( !(newLength >= destReservedLength) ) {
+      printf( "[AppendChar 01: Lines 17-22] newLength:%u overflowed\n", newLength );
+      errorCount++;
+    }
+
     if( newLength >= destReservedLength ) {
       newSize = sizeof(retstringImpl) + newReservedLength;
       if( newSize < newReservedLength ) {
-        printf( "[AppendChar 01: Lines 17-22] reservedLength:%u and length:%u overflowed\n", destReservedLength, destLength );
+        printf( "[AppendChar 01: Lines 17-22] reservedLength:%u and "
+                "length:%u overflowed\n", destReservedLength, destLength );
         errorCount++;
       }
+    }
+
+    if( newReservedLength != 8 ) {
+      printf( "[AppendChar 01: Lines 17-22] newReservedLength is %u "
+              "when it should be %u\n", newReservedLength, 8 );
+      errorCount++;
+    }
+
+    if( newLength != 1 ) {
+      printf( "[AppendChar 01: Lines 17-22] newLength is %u when it "
+              "should be %u\n", newLength, 1 );
+      errorCount++;
+    }
+
+    if( newSize != (8 + sizeof(retstringImpl)) ) {
+      printf( "[AppendChar 01: Lines 17-22] newSize is %u when it "
+              "should be %u\n", newSize, (8 + sizeof(retstringImpl)) );
+      errorCount++;
     }
 
     // Case 02: reservedLength + length + sizeof(retstringImpl) reach the end
@@ -159,6 +185,8 @@ int main( int argc, char* argv[] ) {
 
     newReservedLength = (destReservedLength + 8) & (~(size_t)7);
     newLength = destLength + 1;
+
+    newSize = newReservedLength + sizeof(retstringImpl);
 
     if( newLength >= destReservedLength ) {
       newSize = sizeof(retstringImpl) + newReservedLength;
