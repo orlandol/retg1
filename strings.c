@@ -148,52 +148,88 @@ int main( int argc, char* argv[] ) {
     newSize = newReservedLength + sizeof(retstringImpl);
 
     if( !(newLength >= destReservedLength) ) {
-      printf( "[AppendChar 01: Lines 17-22] newLength:%u overflowed\n", newLength );
+      printf( "[AppendChar 01: Lines 17-22] "
+              "newLength:%u overflowed\n", newLength
+      );
       errorCount++;
     }
 
     if( newLength >= destReservedLength ) {
       newSize = sizeof(retstringImpl) + newReservedLength;
       if( newSize < newReservedLength ) {
-        printf( "[AppendChar 01: Lines 17-22] reservedLength:%u and "
-                "length:%u overflowed\n", destReservedLength, destLength );
+        printf( "[AppendChar 02: Lines 17-22] reservedLength:%u and "
+                "length:%u overflowed\n", destReservedLength, destLength
+        );
         errorCount++;
       }
     }
 
     if( newReservedLength != 8 ) {
-      printf( "[AppendChar 01: Lines 17-22] newReservedLength is %u "
-              "when it should be %u\n", newReservedLength, 8 );
+      printf( "[AppendChar 03: Lines 17-22] newReservedLength is %u "
+              "when it should be %u\n", newReservedLength, 8
+      );
       errorCount++;
     }
 
     if( newLength != 1 ) {
-      printf( "[AppendChar 01: Lines 17-22] newLength is %u when it "
-              "should be %u\n", newLength, 1 );
+      printf( "[AppendChar 04: Lines 17-22] newLength is %u when it "
+              "should be %u\n", newLength, 1
+      );
       errorCount++;
     }
 
     if( newSize != (8 + sizeof(retstringImpl)) ) {
-      printf( "[AppendChar 01: Lines 17-22] newSize is %u when it "
-              "should be %u\n", newSize, (8 + sizeof(retstringImpl)) );
+      printf( "[AppendChar 05: Lines 17-22] newSize is %u when it "
+              "should be %u\n", newSize, (8 + sizeof(retstringImpl))
+      );
       errorCount++;
     }
 
-    // Case 02: reservedLength + length + sizeof(retstringImpl) reach the end
-    destReservedLength = (size_t)(-1);
-    destLength = (size_t)(-1);
+    // Case 02: reservedLength + length = max string length
+    destReservedLength = ((size_t)(-1) - sizeof(retstringImpl) - 8) & (~(size_t)7);
+    destLength = (size_t)(-1) - sizeof(retstringImpl) - 9;
 
     newReservedLength = (destReservedLength + 8) & (~(size_t)7);
     newLength = destLength + 1;
 
     newSize = newReservedLength + sizeof(retstringImpl);
 
+    if( !(newLength >= destReservedLength) ) {
+      printf( "[AppendChar 06: Lines 17-22] "
+              "newLength:%u overflowed\n", newLength
+      );
+      errorCount++;
+    }
+
     if( newLength >= destReservedLength ) {
       newSize = sizeof(retstringImpl) + newReservedLength;
       if( newSize < newReservedLength ) {
-        printf( "[AppendChar 02: Lines 17-22] reservedLength:%u and length:%u overflowed\n", destReservedLength, destLength );
+        printf( "[AppendChar 07: Lines 17-22] reservedLength:%u and "
+                "length:%u overflowed\n", destReservedLength, destLength
+        );
         errorCount++;
       }
+    }
+
+    if( newReservedLength != (size_t)(-1) ) {
+      printf( "[AppendChar 08: Lines 17-22] newReservedLength is %u "
+              "when it should be %u\n", newReservedLength, (size_t)(-2)
+      );
+      errorCount++;
+    }
+
+    if( newLength != 1 ) {
+      printf( "[AppendChar 09: Lines 17-22] newLength is %u when it "
+              "should be %u\n", newLength, 1
+      );
+      errorCount++;
+    }
+
+    if( newSize != (8 + sizeof(retstringImpl)) ) {
+      printf( "[AppendChar 10: Lines 17-22] newSize is %u when it "
+              "should be %u\n", newSize, (8 + sizeof(retstringImpl))
+      );
+      errorCount++;
     }
   }
 
@@ -201,9 +237,13 @@ int main( int argc, char* argv[] ) {
   // [Logic 02]: Test AppendCString and AppendString assumptions
   size_t availableLength = 0;
   size_t newLength = 0;
+  }
 
+  {
   // [Logic 03]: Test AppendCString and AppendString assumptions
+  }
 
+  {
   // [Logic 04]: Test AppendCString and AppendString assumptions
   size_t newSize = 0;
   }
