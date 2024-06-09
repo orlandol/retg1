@@ -14,7 +14,7 @@ retstring NewString( size_t reserveLength ) {
   size_t stringSize = 0;
   size_t paddedReservedLength = 0;
 
-  paddedReservedLength = (reserveLength + 8) & (~((size_t)7));
+  paddedReservedLength = (reserveLength + 8) & STRING_PADMASK;
 
   stringSize = sizeof(retstring) + paddedReservedLength;
 
@@ -87,7 +87,7 @@ retstring CompactString( retstring destString ) {
     return NULL;
   }
 
-  newReservedLength = (destStringImpl->length + 8) & (~(size_t)7);
+  newReservedLength = (destStringImpl->length + 8) & STRING_PADMASK;
   if( newReservedLength < destStringImpl->length ) { return NULL; }
 
   if( destStringImpl->reservedLength == newReservedLength ) {
@@ -160,7 +160,8 @@ retstring AppendChar( retstring destString, char ch ) {
   destReservedLength = destImpl->reservedLength;
   destLength = destImpl->length;
 
-  newReservedLength = (destReservedLength + 8) & (~(size_t)7);
+  newReservedLength = (destReservedLength + STRING_PADDING)
+                      & STRING_PADMASK;
   newLength = destLength + 1;
 
   if( newLength >= destReservedLength ) {
@@ -203,7 +204,8 @@ retstring AppendCString( retstring destString, const char* sourceString ) {
 
   // [Logic 03]: Check for potential wraparound of new reserved length
   newDestLength = destStringImpl->length + sourceLength;
-  newDestReservedLength = (newDestLength + 8) & (~(size_t)7);
+  newDestReservedLength = (newDestLength + STRING_PADDING)
+                          & STRING_PADMASK;
 
   if( destStringImpl->reservedLength < newDestReservedLength ) {
     // [Logic 04]: Check for potential wraparound of new size
@@ -247,7 +249,8 @@ retstring AppendString( retstring destString, retstring sourceString ) {
 
   // [Logic 03]: Check for potential wraparound of new reserved length
   newDestLength = destStringImpl->length + sourceStringImpl->length;
-  newDestReservedLength = (newDestLength + 8) & (~(size_t)7);
+  newDestReservedLength = (newDestLength + STRING_PADDING)
+                          & STRING_PADMASK;
 
   // The resulting reservedLength will be the greater of either
   // destReservedLength or (destLength + sourceLength + padding)

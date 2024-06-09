@@ -142,92 +142,83 @@ int main( int argc, char* argv[] ) {
     destReservedLength = 0;
     destLength = 0;
 
-    newReservedLength = (destReservedLength + 8) & (~(size_t)7);
+    newReservedLength = (destReservedLength + STRING_PADDING)
+                        & STRING_PADMASK;
     newLength = destLength + 1;
 
     newSize = newReservedLength + sizeof(retstringImpl);
 
-    if( !(newLength >= destReservedLength) ) {
-      printf( "[AppendChar 01: Lines 17-22] "
-              "newLength:%u overflowed\n", newLength
-      );
-      errorCount++;
-    }
-
     if( newLength >= destReservedLength ) {
       newSize = sizeof(retstringImpl) + newReservedLength;
       if( newSize < newReservedLength ) {
-        printf( "[AppendChar 02: Lines 17-22] reservedLength:%u and "
+        printf( "[AppendChar 01: Lines 17-22] reservedLength:%u and "
                 "length:%u overflowed\n", destReservedLength, destLength
         );
         errorCount++;
       }
     }
 
-    if( newReservedLength != 8 ) {
-      printf( "[AppendChar 03: Lines 17-22] newReservedLength is %u "
-              "when it should be %u\n", newReservedLength, 8
+    if( newReservedLength != STRING_PADDING ) {
+      printf( "[AppendChar 02: Lines 17-22] newReservedLength is %u "
+              "when it should be %u\n", newReservedLength, STRING_PADDING
       );
       errorCount++;
     }
 
     if( newLength != 1 ) {
-      printf( "[AppendChar 04: Lines 17-22] newLength is %u when it "
+      printf( "[AppendChar 03: Lines 17-22] newLength is %u when it "
               "should be %u\n", newLength, 1
       );
       errorCount++;
     }
 
-    if( newSize != (8 + sizeof(retstringImpl)) ) {
-      printf( "[AppendChar 05: Lines 17-22] newSize is %u when it "
-              "should be %u\n", newSize, (8 + sizeof(retstringImpl))
+    if( newSize != (STRING_PADDING + sizeof(retstringImpl)) ) {
+      printf( "[AppendChar 04: Lines 17-22] newSize is %u when it "
+              "should be %u\n", newSize,
+              (STRING_PADDING + sizeof(retstringImpl))
       );
       errorCount++;
     }
 
     // Case 02: reservedLength + length = max string length
-    destReservedLength = ((size_t)(-1) - sizeof(retstringImpl) - 8) & (~(size_t)7);
-    destLength = (size_t)(-1) - sizeof(retstringImpl) - 9;
+    destReservedLength = STRING_MAXRESERVED;
+    destLength = STRING_MAXLENGTH - 1;
 
-    newReservedLength = (destReservedLength + 8) & (~(size_t)7);
+    newReservedLength = (destReservedLength + STRING_PADDING)
+                        & STRING_PADMASK;
     newLength = destLength + 1;
 
     newSize = newReservedLength + sizeof(retstringImpl);
 
-    if( !(newLength >= destReservedLength) ) {
-      printf( "[AppendChar 06: Lines 17-22] "
-              "newLength:%u overflowed\n", newLength
-      );
-      errorCount++;
-    }
-
     if( newLength >= destReservedLength ) {
       newSize = sizeof(retstringImpl) + newReservedLength;
       if( newSize < newReservedLength ) {
-        printf( "[AppendChar 07: Lines 17-22] reservedLength:%u and "
+        printf( "[AppendChar 05: Lines 17-22] reservedLength:%u and "
                 "length:%u overflowed\n", destReservedLength, destLength
         );
         errorCount++;
       }
     }
 
-    if( newReservedLength != (size_t)(-1) ) {
-      printf( "[AppendChar 08: Lines 17-22] newReservedLength is %u "
-              "when it should be %u\n", newReservedLength, (size_t)(-2)
+    if( newReservedLength != (STRING_MAXRESERVED + STRING_PADDING) ) {
+      printf( "[AppendChar 06: Lines 17-22] newReservedLength is %u "
+              "when it should be %u\n", newReservedLength,
+              (STRING_MAXRESERVED + STRING_PADDING)
       );
       errorCount++;
     }
 
-    if( newLength != 1 ) {
-      printf( "[AppendChar 09: Lines 17-22] newLength is %u when it "
-              "should be %u\n", newLength, 1
+    if( newLength != STRING_MAXLENGTH ) {
+      printf( "[AppendChar 07: Lines 17-22] newLength is %u when it "
+              "should be %u\n", newLength, STRING_MAXLENGTH
       );
       errorCount++;
     }
 
-    if( newSize != (8 + sizeof(retstringImpl)) ) {
-      printf( "[AppendChar 10: Lines 17-22] newSize is %u when it "
-              "should be %u\n", newSize, (8 + sizeof(retstringImpl))
+    if( newSize != (STRING_MAXSIZE + sizeof(retstringImpl)) ) {
+      printf( "[AppendChar 08: Lines 17-22] newSize is %u when it "
+              "should be %u\n", newSize,
+              (STRING_MAXSIZE + sizeof(retstringImpl))
       );
       errorCount++;
     }
@@ -258,7 +249,8 @@ int main( int argc, char* argv[] ) {
   TestString( 2, "NewString(5)", s1, "-", "" );
 
   reservedLength = StringReservedLength(s1);
-  TestValue( 3, "StringReservedLength(s1)", reservedLength, 8 );
+  TestValue( 3, "StringReservedLength(s1)",
+    reservedLength, STRING_PADDING * 1 );
 
   length = StringLength(s1);
   TestValue( 4, "StringLength(s1)", length, 0 );
@@ -282,7 +274,8 @@ int main( int argc, char* argv[] ) {
   TestString( 9, "AppendChar(s1, 'H')", s1, "-", "H" );
 
   reservedLength = StringReservedLength(s1);
-  TestValue( 10, "StringReservedLength(s1)", reservedLength, 8 );
+  TestValue( 10, "StringReservedLength(s1)",
+    reservedLength, STRING_PADDING * 1 );
 
   length = StringLength(s1);
   TestValue( 11, "StringLength(s1)", length, 1 );
@@ -304,7 +297,8 @@ int main( int argc, char* argv[] ) {
   TestString( 16, "AppendCString(s1, 'ello, ')", s1, "-", "Hello, " );
 
   reservedLength = StringReservedLength(s1);
-  TestValue( 17, "AppencCString(s1, 'ello. ')", reservedLength, 8 );
+  TestValue( 17, "AppencCString(s1, 'ello. ')",
+    reservedLength, STRING_PADDING * 1 );
 
   length = StringLength(s1);
   TestValue( 18, "StringLEngth(s1)", length, 7 );
@@ -326,7 +320,8 @@ int main( int argc, char* argv[] ) {
   TestString( 23, "AppendChar(s1, 'w')", s1, "-", "Hello, w" );
 
   reservedLength = StringReservedLength(s1);
-  TestValue( 24, "AppencChar(s1, 'w')", reservedLength, 16 );
+  TestValue( 24, "AppencChar(s1, 'w')",
+    reservedLength, STRING_PADDING * 2 );
 
   length = StringLength(s1);
   TestValue( 25, "StringLength(s1)", length, 8 );
@@ -347,7 +342,8 @@ int main( int argc, char* argv[] ) {
   TestString( 30, "DuplicateCString('orld!')", s2, "-", "orld!" );
 
   reservedLength = StringReservedLength(s2);
-  TestValue( 31, "DuplicateCString('orld!')", reservedLength, 8 );
+  TestValue( 31, "DuplicateCString('orld!')",
+    reservedLength, STRING_PADDING * 1 );
 
   length = StringLength(s2);
   TestValue( 32, "StringLength(s2)", length, 5 );
@@ -369,7 +365,8 @@ int main( int argc, char* argv[] ) {
   TestString( 37, "AppendString(s1, s2)", s1, "-", "Hello, world!" );
 
   reservedLength = StringReservedLength(s1);
-  TestValue( 38, "AppendString(s1, s2)", reservedLength, 16 );
+  TestValue( 38, "AppendString(s1, s2)",
+    reservedLength, STRING_PADDING * 2 );
 
   length = StringLength(s1);
   TestValue( 39, "StringLength(s1)", length, 13 );
@@ -389,7 +386,8 @@ int main( int argc, char* argv[] ) {
   TestString( 44, "ClearString(s1)", s1, "-", "" );
 
   reservedLength = StringReservedLength(s1);
-  TestValue( 45, "ClearString(s1)", reservedLength, 16 );
+  TestValue( 45, "ClearString(s1)",
+    reservedLength, STRING_PADDING * 2 );
 
   length = StringLength(s1);
   TestValue( 46, "StringLength(s1)", length, 0 );
@@ -411,7 +409,8 @@ int main( int argc, char* argv[] ) {
   TestString( 51, "CompactString(s1)", s1, "-", "" );
 
   reservedLength = StringReservedLength(s1);
-  TestValue( 52, "CompactString(s1)", reservedLength, 8 );
+  TestValue( 52, "CompactString(s1)",
+    reservedLength, STRING_PADDING * 1 );
 
   length = StringLength(s1);
   TestValue( 53, "StringLength(s1)", length, 0 );
@@ -439,7 +438,8 @@ int main( int argc, char* argv[] ) {
     "-", "Hello, world!" );
 
   reservedLength = StringReservedLength(s1);
-  TestValue( 61, "StringReservedLength(s1)", reservedLength, 16 );
+  TestValue( 61, "StringReservedLength(s1)",
+    reservedLength, STRING_PADDING * 2 );
 
   length = StringLength(s1);
   TestValue( 62, "StringLength(s1)", length, 13 );
@@ -460,7 +460,8 @@ int main( int argc, char* argv[] ) {
   TestString( 67, "s2 = DuplicateString(s1)", s2, "s1", s1 );
 
   reservedLength = StringReservedLength(s2);
-  TestValue( 68, "StringReservedLength(s2)", reservedLength, 16 );
+  TestValue( 68, "StringReservedLength(s2)",
+    reservedLength, STRING_PADDING * 2 );
 
   length = StringLength(s2);
   TestValue( 69, "StringLength(s2)", length, 13 );

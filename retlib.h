@@ -10,7 +10,20 @@
  *  String declarations
  */
 
-#define STRING_PADDING 8 // Includes NULL byte
+// Includes NULL byte
+#define STRING_PADDING ( sizeof(retstringImpl) )
+
+// Pre-define a mask to remove unaligned bits
+#define STRING_PADMASK ( ~ (size_t)(7) )
+
+// ex: 0x...F8
+#define STRING_MAXSIZE ( ((size_t)(-1) & STRING_PADMASK) )
+
+// ex: 0x...F0
+#define STRING_MAXRESERVED ( STRING_MAXSIZE - sizeof(retstringImpl) )
+
+// STRING_MAXRESERVED - NULL byte
+#define STRING_MAXLENGTH ( STRING_MAXRESERVED - 1 )
 
 typedef struct retstringImpl {
   size_t reservedLength;
