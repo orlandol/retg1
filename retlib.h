@@ -58,6 +58,14 @@ int CompareStringsNC( retstring left, retstring right );
  *  Symbol table declarations
  */
 
+typedef struct Symbol {
+  retstring* name;
+} Symbol;
+
+typedef struct SymbolTable {
+  void* root;
+} SymbolTable;
+
 /*
  *  Code generator declarations
  */

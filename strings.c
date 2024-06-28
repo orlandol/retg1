@@ -128,8 +128,6 @@ int main( int argc, char* argv[] ) {
     exit(1);
   }
 
-  ///TODO: Test edge calculation logic used within string functions
-
   {
     // [Logic 01]: Test AppendChar assumptions
     size_t destReservedLength;
@@ -225,21 +223,25 @@ int main( int argc, char* argv[] ) {
   }
 
   {
-  // [Logic 02]: Test AppendCString and AppendString assumptions
-  size_t availableLength = 0;
-  size_t newLength = 0;
+  ///TODO: [Logic 02]: Test AppendCString and AppendString assumptions
   }
 
   {
-  // [Logic 03]: Test AppendCString and AppendString assumptions
+  ///TODO: [Logic 03]: Test AppendCString and AppendString assumptions
   }
 
   {
-  // [Logic 04]: Test AppendCString and AppendString assumptions
+  ///TODO: [Logic 04]: Test AppendCString and AppendString assumptions
   size_t newSize = 0;
   }
 
-  ///TODO: Test strcmp and __stricmp to indirectly validate CompareXYZ
+  ///TODO: Test CompareToCString
+
+  ///TODO: Test CompareStrings
+
+  ///TODO: Test CompareToCStringNC
+
+  ///TODO: Test CompareStringsNC
 
   // NewString(non-zero) test cases
   s1 = NewString(5);
