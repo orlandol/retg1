@@ -297,6 +297,28 @@ int CompareStringsNC( retstring left, retstring right ) {
  *  Symbol table implementation
  */
 
+typedef struct SymbolTableImpl {
+  struct avl_tree_node* root;
+} SymbolTableImpl;
+
+SymbolTable* NewSymbolTable( void ) {
+  return calloc(1, sizeof(SymbolTable));
+}
+
+void ReleaseSymbolTable( SymbolTable** symTabPtr ) {
+  if( symTabPtr ) {
+    if( (*symTabPtr) ) {
+      free( (*symTabPtr) );
+      (*symTabPtr) = NULL;
+    }
+  }
+}
+
+int InsertSymbol( SymbolTable* symTab, Symbol* symbol ) {
+  return 3;
+}
+
+
 /*
  *  Code generator implementation
  */

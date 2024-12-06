@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "avl_tree.h"
-
 /*
  *  String declarations
  */
@@ -60,11 +58,17 @@ int CompareStringsNC( retstring left, retstring right );
 
 typedef struct Symbol {
   retstring* name;
+  void* node;
 } Symbol;
 
 typedef struct SymbolTable {
-  void* root;
+  Symbol* root;
+  size_t count;
 } SymbolTable;
+
+SymbolTable* NewSymbolTable( void );
+
+void ReleaseSymbolTable( SymbolTable** symTabPtr );
 
 /*
  *  Code generator declarations
