@@ -41,7 +41,6 @@ void TestReleaseSymbolTable( unsigned testNumber,
     );
     errorCount++;
   }
-
 }
 
 int main( int argc, char* argv[] ) {

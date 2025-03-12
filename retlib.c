@@ -297,27 +297,157 @@ int CompareStringsNC( retstring left, retstring right ) {
  *  Symbol table implementation
  */
 
-typedef struct SymbolTableImpl {
-  struct avl_tree_node* root;
-} SymbolTableImpl;
-
 SymbolTable* NewSymbolTable( void ) {
   return calloc(1, sizeof(SymbolTable));
 }
 
+int CompareSymbolsByName( const struct avl_tree_node* left,
+    const struct avl_tree_node* right ) {
+  Symbol* leftSymbol = NULL;
+  Symbol* rightSymbol = NULL;
+
+  if( left ) { leftSymbol = avl_tree_entry(left, Symbol, node); }
+  if( right ) { rightSymbol = avl_tree_entry(right, Symbol, node); }
+
+  if( leftSymbol == NULL ) { return 256 + 1; }
+  if( rightSymbol == NULL ) { return 256 + 2; }
+
+  return CompareStrings(leftSymbol->name, rightSymbol->name);
+}
+
+int CompareSymbolName( const void* symbolName,
+    const struct avl_tree_node* symbolNode ) {
+  Symbol* symbol = NULL;
+
+  if( !(symbolName && (*(retstring)symbolName)) ) { return 256 + 1; }
+
+  if( symbolNode ) { symbol = avl_tree_entry(symbolNode, Symbol, node); }
+  if( symbol == NULL ) { return 256 + 2; }
+
+  return CompareStrings(symbol->name, ((retstring)symbolName));
+}
+
+void ReleaseSymbol( Symbol** symbolPtr ) {
+  if( symbolPtr ) {
+    if( (*symbolPtr) ) {
+      if( (*symbolPtr)->symbolDestructor ) {
+        (*symbolPtr)->symbolDestructor( (*symbolPtr) );
+
+        if( (*symbolPtr)->name ) {
+          ReleaseString( &((*symbolPtr)->name) );
+        }
+
+        (*symbolPtr)->symbolType = 0;
+      }
+
+      free( (*symbolPtr) );
+      (*symbolPtr) = NULL;
+    }
+  }
+}
+
 void ReleaseSymbolTable( SymbolTable** symTabPtr ) {
+  Symbol* symbol = NULL;
+
   if( symTabPtr ) {
     if( (*symTabPtr) ) {
+      avl_tree_for_each_in_postorder(symbol,
+          (*symTabPtr)->root, Symbol, node) {
+        if( symbol ) {
+          avl_tree_node_set_unlinked( symbol->node );
+          avl_tree_remove( &((*symTabPtr)->root), symbol->node );
+
+          ReleaseSymbol( &symbol );
+        }
+      }
+
       free( (*symTabPtr) );
       (*symTabPtr) = NULL;
     }
   }
 }
 
-int InsertSymbol( SymbolTable* symTab, Symbol* symbol ) {
-  return 3;
+unsigned LookupSymbol( SymbolTable* symbolTable,
+    const retstring symbolName, Symbol** symbolPtr ) {
+  struct avl_tree_node* symbolNode = NULL;
+
+  if( symbolTable == NULL ) { return 1; }
+  if( !(symbolName && (*symbolName)) ) { return 2; }
+  if( symbolPtr == NULL ) { return 3; }
+
+  symbolNode = avl_tree_lookup(symbolTable->root, symbolName,
+      CompareSymbolName);
+  if( symbolNode == NULL ) { return 4; }
+
+  (*symbolPtr) = avl_tree_entry(symbolNode, Symbol, node);
+
+  return 0;
 }
 
+unsigned DeclareSymbol( SymbolTable* symbolTable, Symbol* symbol ) {
+  if( symbolTable == NULL ) { return 1; }
+  if( symbol == NULL ) { return 2; }
+
+  if( symbolTable->count == (unsigned)(-1) ) { return 3; }
+
+  if( avl_tree_insert(&(symbolTable->root), symbol->node,
+      CompareSymbolsByName) ) {
+    return 4; //Error: Duplicate entry
+  }
+
+  symbolTable->count++;
+
+  return 0;
+}
+
+unsigned RemoveSymbol( SymbolTable* symbolTable,
+    const retstring symbolName ) {
+  struct avl_tree_node* symbolNode = NULL;
+  Symbol* symbol = NULL;
+
+  if( !(symbolTable && symbolTable->count) ) { return 1; }
+  if( !(symbolName && (*symbolName)) ) { return 2; }
+
+  symbolNode = avl_tree_lookup(symbolTable->root, symbolName,
+    CompareSymbolName);
+  if( symbolNode == NULL ) { return 3; }
+
+  symbol = avl_tree_entry(symbolNode, Symbol, node);
+  if( symbol == NULL ) { return 4; }
+
+  avl_tree_node_set_unlinked( symbolNode );
+  avl_tree_remove( &(symbolTable->root), symbolNode );
+
+  ReleaseSymbol( &symbol );
+
+  symbolTable->count--;
+
+  return 0;
+}
+
+unsigned DeclareRun( SymbolTable* symbolTable, unsigned entryPoint ) {
+  Symbol* newSymbol = NULL;
+  unsigned result = 0;
+
+  if( symbolTable == NULL ) { return 1; }
+
+  newSymbol = calloc(1, sizeof(Symbol));
+  if( newSymbol == NULL ) { return 3; }
+
+  newSymbol->name = DuplicateCString("run");
+  newSymbol->data.runSymbol.entryPoint = entryPoint;
+  result = DeclareSymbol(symbolTable, newSymbol);
+  if( result ) {
+    ReleaseSymbol( &newSymbol );
+    return 4;
+  }
+
+  return 0;
+}
+
+unsigned RemoveRun( SymbolTable* symbolTable ) {
+  return RemoveSymbol(symbolTable, "run");
+}
 
 /*
  *  Code generator implementation

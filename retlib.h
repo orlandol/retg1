@@ -56,19 +56,48 @@ int CompareStringsNC( retstring left, retstring right );
  *  Symbol table declarations
  */
 
+typedef struct RunSymbol {
+  unsigned entryPoint;
+} RunSymbol;
+
+typedef struct StructSymbol {
+  unsigned structSize;
+} StructSymbol;
+
+typedef struct Symbol Symbol;
+typedef void (*SymbolDestructor)(Symbol* symbolPtr);
+
 typedef struct Symbol {
-  retstring* name;
+  SymbolDestructor symbolDestructor;
+  retstring name;
+  unsigned symbolType;
+  union {
+    RunSymbol runSymbol;
+    StructSymbol structSymbol;
+  } data;
   void* node;
 } Symbol;
 
 typedef struct SymbolTable {
-  Symbol* root;
+  struct avl_tree_node* root;
   size_t count;
 } SymbolTable;
 
 SymbolTable* NewSymbolTable( void );
 
+void ReleaseSymbol( Symbol** symbolPtr );
 void ReleaseSymbolTable( SymbolTable** symTabPtr );
+
+unsigned LookupSymbol( SymbolTable* symbolTable,
+  const retstring symbolName, Symbol** symbolPtr );
+
+unsigned DeclareSymbol( SymbolTable* symbolTable, Symbol* symbol );
+unsigned RemoveSymbol( SymbolTable* symbolTable,
+    const retstring symbolName );
+
+void RunSymbolDestructor( Symbol* runSymbol );
+unsigned DeclareRun( SymbolTable* symbolTable, unsigned entryPoint );
+unsigned RemoveRun( SymbolTable* symbolTable );
 
 /*
  *  Code generator declarations
