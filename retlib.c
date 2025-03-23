@@ -328,10 +328,12 @@ int CompareSymbolName( const void* symbolName,
 }
 
 void ReleaseSymbol( Symbol** symbolPtr ) {
+  unsigned result;
+
   if( symbolPtr ) {
     if( (*symbolPtr) ) {
       if( (*symbolPtr)->symbolDestructor ) {
-        (*symbolPtr)->symbolDestructor( (*symbolPtr) );
+        result = (*symbolPtr)->symbolDestructor( (*symbolPtr) );
 
         if( (*symbolPtr)->name ) {
           ReleaseString( &((*symbolPtr)->name) );
@@ -346,23 +348,23 @@ void ReleaseSymbol( Symbol** symbolPtr ) {
   }
 }
 
-void ReleaseSymbolTable( SymbolTable** symTabPtr ) {
+void ReleaseSymbolTable( SymbolTable** symbolTablePtr ) {
   Symbol* symbol = NULL;
 
-  if( symTabPtr ) {
-    if( (*symTabPtr) ) {
+  if( symbolTablePtr ) {
+    if( (*symbolTablePtr) ) {
       avl_tree_for_each_in_postorder(symbol,
-          (*symTabPtr)->root, Symbol, node) {
+          (*symbolTablePtr)->root, Symbol, node) {
         if( symbol ) {
           avl_tree_node_set_unlinked( symbol->node );
-          avl_tree_remove( &((*symTabPtr)->root), symbol->node );
+          avl_tree_remove( &((*symbolTablePtr)->root), symbol->node );
 
           ReleaseSymbol( &symbol );
         }
       }
 
-      free( (*symTabPtr) );
-      (*symTabPtr) = NULL;
+      free( (*symbolTablePtr) );
+      (*symbolTablePtr) = NULL;
     }
   }
 }
@@ -425,6 +427,13 @@ unsigned RemoveSymbol( SymbolTable* symbolTable,
   return 0;
 }
 
+
+unsigned RunSymbolDestructor( Symbol* runSymbol ) {
+  if( runSymbol == NULL ) { return 1; }
+
+  return 2;
+}
+
 unsigned DeclareRun( SymbolTable* symbolTable, unsigned entryPoint ) {
   Symbol* newSymbol = NULL;
   unsigned result = 0;
@@ -435,6 +444,8 @@ unsigned DeclareRun( SymbolTable* symbolTable, unsigned entryPoint ) {
   if( newSymbol == NULL ) { return 3; }
 
   newSymbol->name = DuplicateCString("run");
+  newSymbol->symbolDestructor = RunSymbolDestructor;
+  newSymbol->symbolType = symRun;
   newSymbol->data.runSymbol.entryPoint = entryPoint;
   result = DeclareSymbol(symbolTable, newSymbol);
   if( result ) {

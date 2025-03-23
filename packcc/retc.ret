@@ -1,0 +1,15 @@
+
+ // Single-line comment
+
+/* Multi-line
+  /* nested */ comment
+*/
+
+ p_rogram retc
+
+  const int myInt = 1_23
+
+  type uint errorCode
+
+run
+end

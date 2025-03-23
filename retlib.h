@@ -56,6 +56,11 @@ int CompareStringsNC( retstring left, retstring right );
  *  Symbol table declarations
  */
 
+enum SymbolType {
+  undefined = 0,
+  symRun = 1
+} SymbolType;
+
 typedef struct RunSymbol {
   unsigned entryPoint;
 } RunSymbol;
@@ -65,7 +70,7 @@ typedef struct StructSymbol {
 } StructSymbol;
 
 typedef struct Symbol Symbol;
-typedef void (*SymbolDestructor)(Symbol* symbolPtr);
+typedef unsigned (*SymbolDestructor)(Symbol* symbolPtr);
 
 typedef struct Symbol {
   SymbolDestructor symbolDestructor;
@@ -86,7 +91,7 @@ typedef struct SymbolTable {
 SymbolTable* NewSymbolTable( void );
 
 void ReleaseSymbol( Symbol** symbolPtr );
-void ReleaseSymbolTable( SymbolTable** symTabPtr );
+void ReleaseSymbolTable( SymbolTable** symbolTablePtr );
 
 unsigned LookupSymbol( SymbolTable* symbolTable,
   const retstring symbolName, Symbol** symbolPtr );
@@ -95,7 +100,7 @@ unsigned DeclareSymbol( SymbolTable* symbolTable, Symbol* symbol );
 unsigned RemoveSymbol( SymbolTable* symbolTable,
     const retstring symbolName );
 
-void RunSymbolDestructor( Symbol* runSymbol );
+unsigned RunSymbolDestructor( Symbol* runSymbol );
 unsigned DeclareRun( SymbolTable* symbolTable, unsigned entryPoint );
 unsigned RemoveRun( SymbolTable* symbolTable );
 

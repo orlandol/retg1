@@ -43,12 +43,29 @@ void TestReleaseSymbolTable( unsigned testNumber,
   }
 }
 
+void ShowSymbols( SymbolTable* symbolTable ) {
+  Symbol* symbol = NULL;
+
+  if( !(symbolTable && symbolTable->root) ) {
+    printf( "Symbol table is empty\n" );
+  } else {
+    avl_tree_for_each_in_postorder(symbol, symbolTable->root,
+        Symbol, node) {
+      printf( "Symbol: '%s'; SymbolType: %u\n",
+          symbol->name, symbol->symbolType );
+    }
+  }
+}
+
 int main( int argc, char* argv[] ) {
 
   printf( "[Starting symbol table tests]\n" );
 
   symTab = NewSymbolTable();
   TestNewSymbolTable( 1, "symTab = NewSymbolTable()", symTab );
+
+  DeclareRun( symTab, 1234 );
+  ShowSymbols( symTab );
 
   ReleaseSymbolTable( &symTab );
   TestReleaseSymbolTable( 1, "ReleaseSymbolTable( &symTab )", symTab );

@@ -1,0 +1,137 @@
+
+program <- _ programDeclaration (_ globalDeclaration)* _ 'run' _ 'end' (_ globalDeclaration)* _ eof
+
+programDeclaration <- 'program' _ <IDENT> {
+  printf( "[L%u] PROGRAM: '%s'\n", auxil->line, $1 );
+}
+
+globalDeclaration <-
+  'const' _ basicType _ <IDENT> _ '=' _ CONSTINIT {
+    printf( "CONST: '%s'\n", $1 );
+  }
+/ 'type' _ basicType _ <IDENT> {
+    printf( "TYPE: '%s'\n", $2 );
+  }
+
+basicType <- ('int' / 'uint' / 'char' / 'bool')
+
+CONSTINIT <-
+  '[' _ CONSTEXPR (_ ',' _ CONSTEXPR)* _ ']' {
+    printf( "  = [array]\n" );
+  }
+/ CONSTEXPR
+
+CONSTEXPR <-
+  CONSTINT
+
+CONSTINT <-
+  '0b'<[_0-1]+> {
+    printf( "  = BININT: %s\n", $1 );
+  }
+/ '0o'<[_0-7]+> {
+    printf( "  = OCTINT: %s\n", $2 );
+  }
+/ '0x'<[_0-9a-fA-F]+> {
+    printf( "  = HEXINT: %s\n", $3 );
+  }
+/ <[_0-9]+> {
+    printf( "  = INTEGER: %s\n", $4 );
+  }
+
+IDENT <- [_a-zA-Z][_a-zA-Z0-9]*
+
+_ <- (space / eol / singleLineComment / multiLineComment)*
+
+singleLineComment <-
+  '//' (!eol !eof .)* (eol / eof)
+
+# Rule adapted from:
+# https://stackoverflow.com/questions/28419972/how-do-you-parse-nested-comments-in-pegjs
+multiLineComment <-
+  '/*' ((!'/*' !'*/' (eol / .)) / multiLineComment)* '*/'
+
+space <- [ \t]
+
+eol <- ('\r\n' / '\r' / '\n') {
+  auxil->line++;
+}
+
+eof <- !.
+
+%header {
+  /// Begin parse state auxil declarations
+  typedef struct SourceFile {
+    FILE* handle;
+  } SourceFile;
+
+  typedef struct ParseState {
+    SourceFile source;
+    unsigned line;
+    unsigned errLine;
+  } ParseState;
+  // End parse state auxil declarations
+}
+
+%auxil "ParseState*"
+
+%source {
+  // begin strnlen copied from packcc.c source file, as a workaround for TinyCC
+  #ifdef __TINYC__
+  static size_t strnlen(const char *str, size_t maxlen) {
+    size_t i;
+    for( i = 0; (i < maxlen) && str[i]; i++ ) {
+    };
+    return i;
+  }
+  #endif
+  // end strnlen
+
+/*
+  static const char *dbg_str[] = { "Evaluating rule", "Matched rule", "Abandoning rule" };
+  #define PCC_DEBUG(event, rule, level, pos, buffer, length) \
+      fprintf(stderr, "%*s%s %s @%d [%.*s]\n", level * 2, "", dbg_str[event], rule, pos, length, buffer);
+*/
+
+  /// Begin PCC_GETCHAR override
+  int ReadChar( ParseState* auxil ) {
+    int result = EOF;
+    if( auxil && auxil->source.handle ) {
+      result = fgetc(auxil->source.handle);
+    }
+    if( result == '\n' ) {
+      auxil->errLine++;
+    }
+    return result;
+  }
+  #define PCC_GETCHAR(auxil) ReadChar(auxil);
+  // End PCC_GETCHAR override
+
+  /// Begin PCC_ERROR override
+  void SyntaxError( ParseState* auxil ) {
+    printf( "Syntax error on line %u\n", auxil->errLine );
+    exit( 1 );
+  }
+  #define PCC_ERROR(auxil) SyntaxError(auxil)
+  // End PCC_ERROR override
+
+}
+
+%%
+
+ParseState parseState = {NULL, 1, 1};
+
+int main( int argc, char* argv[] ) {
+  pcc_context_t *ctx = pcc_create(&parseState);
+
+  parseState.source.handle = fopen(argv[1], "r");
+
+  while( pcc_parse(ctx, NULL) ) {
+  };
+
+  pcc_destroy( ctx );
+
+  fclose( parseState.source.handle );
+  parseState.source.handle = NULL;
+
+  return 0;
+}
