@@ -1,19 +1,79 @@
 
-program <- _ programDeclaration (_ globalDeclaration)* _ 'run' _ 'end' (_ globalDeclaration)* _ eof
+program <-
+  _ programDeclaration
+    (_ globalDeclaration)*
+  _ runBlock
+    (_ globalDeclaration)*
+  _ eof
+
+runBlock <-
+  'run'
+    (_ localVarBlock)*
+    (_ ('return' / STATEMENT))*
+  _ 'end'
 
 programDeclaration <- 'program' _ <IDENT> {
   printf( "[L%u] PROGRAM: '%s'\n", auxil->line, $1 );
 }
 
+TYPESPEC <-
+  ('@' / '#') _ <TYPENAME> _ '[' _ ']' {
+  }
+/ ('@' / '#') _ <TYPENAME> _ '[' _ CONSTINDEXEXPR _ ']' {
+  }
+/ ('@' / '#') _ <TYPENAME> {
+  }
+/ <TYPENAME> _ '[' _ CONSTEXPR _ ']' {
+  }
+/ <TYPENAME>
+
+TYPENAME <- IDENT
+
+CONSTINDEXEXPR <-
+  CONSTINDEXINT
+
+CONSTINDEXINT <-
+  '0b'<[_0-1]+> {
+    printf( "  [BININT: %s]\n", $1 );
+  }
+/ '0o'<[_0-7]+> {
+    printf( "  [OCTINT: %s]\n", $2 );
+  }
+/ '0x'<[_0-9a-fA-F]+> {
+    printf( "  [HEXINT: %s]\n", $3 );
+  }
+/ <[_0-9]+> {
+    printf( "  [INTEGER: %s]\n", $4 );
+  }
+
 globalDeclaration <-
-  'const' _ basicType _ <IDENT> _ '=' _ CONSTINIT {
+  'const' _ BASICTYPE _ <IDENT> _ '=' _ CONSTINIT {
     printf( "CONST: '%s'\n", $1 );
   }
-/ 'type' _ basicType _ <IDENT> {
+/ 'type' _ TYPESPEC _ <IDENT> {
     printf( "TYPE: '%s'\n", $2 );
   }
 
-basicType <- ('int' / 'uint' / 'char' / 'bool')
+localVarBlock <-
+  'var'
+  _ 'end'
+
+localVarDeclaration <-
+  TYPESPEC _ IDENT _ (',' _ IDENT _)*
+/ TYPESPEC _ IDENT
+
+VARNAME <- IDENT
+
+
+STATEMENT <-
+  labelDeclaration
+/ 'goto' _ LABELNAME {
+  }
+
+labelDeclaration <- <IDENT> ':' {
+}
+
+BASICTYPE <- ('int' / 'uint' / 'char' / 'bool')
 
 CONSTINIT <-
   '[' _ CONSTEXPR (_ ',' _ CONSTEXPR)* _ ']' {
@@ -37,6 +97,8 @@ CONSTINT <-
 / <[_0-9]+> {
     printf( "  = INTEGER: %s\n", $4 );
   }
+
+LABELNAME <- IDENT
 
 IDENT <- [_a-zA-Z][_a-zA-Z0-9]*
 

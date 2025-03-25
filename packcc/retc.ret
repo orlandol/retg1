@@ -5,11 +5,23 @@
   /* nested */ comment
 */
 
- p_rogram retc
+ program retc
 
   const int myInt = 1_23
 
-  type uint errorCode
+  type uint global1
+  type @uint global2
+  type @uint[] global3
+  type @uint[1234] global4
+  type #uint global5
+  type #uint[] global6
+  type #uint[1234] global7
+  type uint[1234] global8
 
 run
+  var
+  end
+
+MyLabel:
+  goto MyLabel
 end
