@@ -9,12 +9,12 @@ program PROGRAMNAME
 
   const TYPESPEC CONSTNAME '=' CONSTINIT
 
-  type (TYPESPEC | FUNCSPEC | METHODSPEC) TYPEALIAS
-
   enum BASETYPE ENUMNAME
     FIELDNAME ['=' CONSTEXPR] [',' ...]
     [...]
   end
+
+  type (TYPESPEC | FUNCSPEC | METHODSPEC) TYPEALIAS
 
   struct STRUCTNAME [inherits STRUCTNAME [',' ...]]
     TYPESPEC FIELDNAME [',' ...]

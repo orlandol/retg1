@@ -8,7 +8,7 @@ program <-
 
 runBlock <-
   'run'
-    (_ localVarBlock)*
+    (_ !'run' localVarBlock)*
     (_ ('return' / STATEMENT))*
   _ 'end'
 
@@ -56,22 +56,36 @@ globalDeclaration <-
 
 localVarBlock <-
   'var'
+  (_ !'end' localVarDeclaration)*
   _ 'end'
 
 localVarDeclaration <-
-  TYPESPEC _ IDENT _ (',' _ IDENT _)*
-/ TYPESPEC _ IDENT
+  TYPESPEC _ VARIDENT _ (',' _ VARIDENT _)*
 
-VARNAME <- IDENT
+VARIDENT <-
+  reservedWords {
+    printf( "Reserved word declared on line %u\n", auxil->line );
+    exit( 1 );
+  }
+/ <IDENT> {
+    printf( "VARIDENT: '%s'\n", $1 );
+  }
 
+reservedWords <-
+  'program' / 'uses' / 'const' / 'enum' / 'newtype' / 'type' / 'var'
+  / 'func' / 'asm' / 'noframe' / 'object' / 'interface' / 'inherits'
+  / 'implements' / 'constructor' / 'destructor' / 'method' / 'run' / 'end'
+  / 'if' / 'then' / 'elseif' / 'else' / 'endif'
+# / ...
 
 STATEMENT <-
   labelDeclaration
 / 'goto' _ LABELNAME {
   }
 
-labelDeclaration <- <IDENT> ':' {
-}
+labelDeclaration <-
+  <IDENT> _ ':' {
+  }
 
 BASICTYPE <- ('int' / 'uint' / 'char' / 'bool')
 

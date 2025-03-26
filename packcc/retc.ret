@@ -20,6 +20,9 @@
 
 run
   var
+    uint local1 , local2, local3
+    uint local4, local5
+    uint local6
   end
 
 MyLabel:
