@@ -356,8 +356,9 @@ void ReleaseSymbolTable( SymbolTable** symbolTablePtr ) {
       avl_tree_for_each_in_postorder(symbol,
           (*symbolTablePtr)->root, Symbol, node) {
         if( symbol ) {
-          avl_tree_node_set_unlinked( symbol->node );
+          ///BUG: remove before unlinked? Or vice-versa?
           avl_tree_remove( &((*symbolTablePtr)->root), symbol->node );
+          avl_tree_node_set_unlinked( symbol->node );
 
           ReleaseSymbol( &symbol );
         }
@@ -386,6 +387,13 @@ unsigned LookupSymbol( SymbolTable* symbolTable,
   return 0;
 }
 
+int EmptyCompare( const struct avl_tree_node* left,
+    const struct avl_tree_node* right ) {
+
+  return 1;
+}
+
+///BUG: Test program crashes in this function
 unsigned DeclareSymbol( SymbolTable* symbolTable, Symbol* symbol ) {
   if( symbolTable == NULL ) { return 1; }
   if( symbol == NULL ) { return 2; }
@@ -393,7 +401,8 @@ unsigned DeclareSymbol( SymbolTable* symbolTable, Symbol* symbol ) {
   if( symbolTable->count == (unsigned)(-1) ) { return 3; }
 
   if( avl_tree_insert(&(symbolTable->root), symbol->node,
-      CompareSymbolsByName) ) {
+      EmptyCompare) ) {
+//      CompareSymbolsByName) ) {
     return 4; //Error: Duplicate entry
   }
 
@@ -417,8 +426,9 @@ unsigned RemoveSymbol( SymbolTable* symbolTable,
   symbol = avl_tree_entry(symbolNode, Symbol, node);
   if( symbol == NULL ) { return 4; }
 
-  avl_tree_node_set_unlinked( symbolNode );
+  ///BUG: remove before unlinked? Or vice-versa?
   avl_tree_remove( &(symbolTable->root), symbolNode );
+  avl_tree_node_set_unlinked( symbolNode );
 
   ReleaseSymbol( &symbol );
 
