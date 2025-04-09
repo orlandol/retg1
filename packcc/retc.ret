@@ -18,6 +18,9 @@
   type #uint[1234] global7
   type uint[1234] global8
 
+  func import none stdcall ExitProcess( uint uExitCode )
+    from "kernel32.dll"
+
 run
   var
     uint local1 , local2, local3
@@ -26,5 +29,21 @@ run
   end
 
 MyLabel:
-  goto MyLabel
+  if local1 == local2
+    then goto MyLabel
+
+  if local1 == local2
+    if local1 == local5
+      then goto MyLabel
+  elseif local1 == local3
+    if local1 == local5
+      then if local1 == local6
+        then goto MyLabel
+  elseif local1 == local4
+  else
+  endif
+
+
+  if local1 == local2
+  endif
 end

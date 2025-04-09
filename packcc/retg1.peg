@@ -23,11 +23,11 @@ TYPESPEC <-
   }
 / ('@' / '#') _ <TYPENAME> {
   }
-/ <TYPENAME> _ '[' _ CONSTEXPR _ ']' {
+/ <TYPENAME> _ '[' _ CONSTINDEXEXPR _ ']' {
   }
 / <TYPENAME>
 
-TYPENAME <- IDENT
+TYPENAME <- ('none' / BASICTYPE / IDENT)
 
 CONSTINDEXEXPR <-
   CONSTINDEXINT
@@ -53,6 +53,44 @@ globalDeclaration <-
 / 'type' _ TYPESPEC _ <IDENT> {
     printf( "TYPE: '%s'\n", $2 );
   }
+/ funcImport
+/ funcDeclaration
+/ funcBlock
+
+funcImport <-
+  'func' _ 'import' _ TYPESPEC _ CALLSPEC? _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+    _ 'from' _ FILENAME _ 'linkas' _ LINKNAME
+/ 'func' _ 'import' _ TYPESPEC _ CALLSPEC? _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+    _ 'from' _ FILENAME
+
+
+FILENAME <- STRING
+
+LINKNAME <- STRING
+
+funcDeclaration <-
+  'func' _ 'declare' _ TYPESPEC? _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+
+funcBlock <-
+  'func' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+    (_ localVarBlock)*
+    (_ !'end' (STATEMENT / 'return' _ EXPR))*
+  'end'
+
+funcParamDeclaration <-
+  TYPESPEC _ (!reservedWord IDENT) (_ ',' _ funcParamDeclaration)* {
+    printf( ":" );
+  }
+
+STRING <- DOUBLEQUOTESTRING / SINGLEQUOTESTRING
+
+DOUBLEQUOTESTRING <- '"' * '"'
+
+SINGLEQUOTESTRING <- "'" * "'"
+
+FUNCSPEC <- 'asm'? _ 'noframe'?
+
+CALLSPEC <- 'cdecl' / 'stdcall'
 
 localVarBlock <-
   'var'
@@ -63,7 +101,7 @@ localVarDeclaration <-
   TYPESPEC _ VARIDENT _ (',' _ VARIDENT _)*
 
 VARIDENT <-
-  reservedWords {
+  reservedWord {
     printf( "Reserved word declared on line %u\n", auxil->line );
     exit( 1 );
   }
@@ -71,7 +109,7 @@ VARIDENT <-
     printf( "VARIDENT: '%s'\n", $1 );
   }
 
-reservedWords <-
+reservedWord <-
   'program' / 'uses' / 'const' / 'enum' / 'newtype' / 'type' / 'var'
   / 'func' / 'asm' / 'noframe' / 'object' / 'interface' / 'inherits'
   / 'implements' / 'constructor' / 'destructor' / 'method' / 'run' / 'end'
@@ -80,12 +118,29 @@ reservedWords <-
 
 STATEMENT <-
   labelDeclaration
-/ 'goto' _ LABELNAME {
+/ 'goto' _ <LABELNAME> {
   }
+/ ifStatementBlock
 
 labelDeclaration <-
   <IDENT> _ ':' {
   }
+
+ifStatementBlock <-
+  'if' _ CONDITION _ 'then' _ STATEMENT {
+  }
+/ 'if' _ CONDITION
+    (_ !'elseif' !'else' !'endif' !'then' STATEMENT)*
+  (_ 'elseif' _ CONDITION
+    (_ !'elseif' !'else' !'endif' !'then' STATEMENT)*
+  )*
+  (_ 'else'
+    (_ !'elseif' !'else' !'endif' !'then' STATEMENT)*
+  )?
+  _ 'endif'
+
+CONDITION <-
+  IDENT _ '==' _ IDENT
 
 BASICTYPE <- ('int' / 'uint' / 'char' / 'bool')
 
@@ -99,6 +154,23 @@ CONSTEXPR <-
   CONSTINT
 
 CONSTINT <-
+  '0b'<[_0-1]+> {
+    printf( "  = BININT: %s\n", $1 );
+  }
+/ '0o'<[_0-7]+> {
+    printf( "  = OCTINT: %s\n", $2 );
+  }
+/ '0x'<[_0-9a-fA-F]+> {
+    printf( "  = HEXINT: %s\n", $3 );
+  }
+/ <[_0-9]+> {
+    printf( "  = INTEGER: %s\n", $4 );
+  }
+
+EXPR <-
+  INTNUM
+
+INTNUM <-
   '0b'<[_0-1]+> {
     printf( "  = BININT: %s\n", $1 );
   }
