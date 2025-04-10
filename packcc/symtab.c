@@ -6,6 +6,10 @@
 
 typedef void (*ReleaseSymbolFunc)( struct avl_tree_node** nodePtr );
 
+enum SymbolType {
+  symbolRun = 1
+};
+
 typedef struct Symbol {
   ReleaseSymbolFunc release;
   unsigned symbolType;
@@ -60,10 +64,43 @@ unsigned DeclareSymbol( SymbolTable* symbolTable, Symbol* symbol ) {
   return 0;
 }
 
+typedef void (*ReleaseSymbolFunc)( struct avl_tree_node** nodePtr );
+
+void ReleaseSymbolRun( struct avl_tree_node** nodePtr ) {
+}
+
+unsigned DeclareRun( SymbolTable* symbolTable, unsigned entryPoint ) {
+  Symbol* newSymbol = NULL;
+  unsigned result = 0;
+
+  if( symbolTable == NULL ) { return 1; }
+
+  newSymbol = calloc(1, sizeof(Symbol));
+  if( newSymbol == NULL ) { return 3; }
+
+  newSymbol->release = ReleaseSymbolRun;
+  newSymbol->symbolType = symbolRun;
+  newSymbol->symbolID = 1234;
+  newSymbol->value = entryPoint;
+
+  result = DeclareSymbol(symbolTable, newSymbol);
+  if( result ) {
+    if( newSymbol ) {
+      free( newSymbol );
+    }
+    return 4;
+  }
+
+  return 0;
+}
+
 int main( int argc, char** argv ) {
   SymbolTable* symtab = NULL;
+  unsigned result = 0;
 
   symtab = CreateSymbolTable();
+
+  result = DeclareRun(symtab, 1111);
 
   ReleaseSymbolTable( &symtab );
 

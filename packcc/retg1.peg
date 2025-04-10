@@ -27,7 +27,7 @@ TYPESPEC <-
   }
 / <TYPENAME>
 
-TYPENAME <- ('none' / BASICTYPE / IDENT)
+TYPENAME <- (BASICTYPE / IDENT)
 
 CONSTINDEXEXPR <-
   CONSTINDEXINT
@@ -58,39 +58,48 @@ globalDeclaration <-
 / funcBlock
 
 funcImport <-
-  'func' _ 'import' _ TYPESPEC _ CALLSPEC? _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
-    _ 'from' _ FILENAME _ 'linkas' _ LINKNAME
-/ 'func' _ 'import' _ TYPESPEC _ CALLSPEC? _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
-    _ 'from' _ FILENAME
+  'func' _ 'import' _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+  _ funcImportFrom _ funcImportLinkAs {
+  }
+/ 'func' _ 'import' _ CALLSPEC _ TYPESPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+  _ funcImportFrom _ funcImportLinkAs {
+  }
 
+funcImportFrom <- ('from' _ FILENAME)?
+
+funcImportLinkAs <- ('as' _ LINKNAME)?
 
 FILENAME <- STRING
 
 LINKNAME <- STRING
 
 funcDeclaration <-
-  'func' _ 'declare' _ TYPESPEC? _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+  'func' _ 'declare' _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+/ 'func' _ 'declare' _ TYPESPEC _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
 
 funcBlock <-
-  'func' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+  'func' _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+    (_ localVarBlock)*
+    (_ !'end' (STATEMENT / 'return'))*
+  'end'
+/ 'func' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
     (_ localVarBlock)*
     (_ !'end' (STATEMENT / 'return' _ EXPR))*
   'end'
 
 funcParamDeclaration <-
   TYPESPEC _ (!reservedWord IDENT) (_ ',' _ funcParamDeclaration)* {
-    printf( ":" );
   }
 
 STRING <- DOUBLEQUOTESTRING / SINGLEQUOTESTRING
 
-DOUBLEQUOTESTRING <- '"' * '"'
+DOUBLEQUOTESTRING <- '"' (!'"' .)* '"'
 
-SINGLEQUOTESTRING <- "'" * "'"
+SINGLEQUOTESTRING <- "'" (!"'" .)* "'"
 
-FUNCSPEC <- 'asm'? _ 'noframe'?
+FUNCSPEC <- ('asm')? _ ('noframe')?
 
-CALLSPEC <- 'cdecl' / 'stdcall'
+CALLSPEC <- ('cdecl' / 'stdcall')?
 
 localVarBlock <-
   'var'
