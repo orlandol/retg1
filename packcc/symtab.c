@@ -4,7 +4,8 @@
 
 #include "avl_tree.h"
 
-typedef void (*ReleaseSymbolFunc)( struct avl_tree_node** nodePtr );
+typedef struct Symbol Symbol;
+typedef void (*ReleaseSymbolFunc)( Symbol* symbol );
 
 enum SymbolType {
   symbolRun = 1
@@ -41,9 +42,23 @@ SymbolTable* CreateSymbolTable() {
 }
 
 void ReleaseSymbolTable( SymbolTable** symbolTablePtr ) {
+  Symbol* currentSymbol = NULL;
+
   if( symbolTablePtr ) {
     if( (*symbolTablePtr) ) {
-      ///TODO: Release all nodes
+      avl_tree_for_each_in_postorder( currentSymbol, (*symbolTablePtr)->symbols, Symbol, node ) {
+        avl_tree_remove( &((*symbolTablePtr)->symbols),currentSymbol->node );
+        avl_tree_node_set_unlinked( currentSymbol );
+
+        if( currentSymbol ) {
+          if( currentSymbol->release ) {
+            currentSymbol->release( currentSymbol );
+          }
+
+          free( currentSymbol );
+          currentSymbol = NULL;
+        }
+      }
 
       free( (*symbolTablePtr) );
       (*symbolTablePtr) = NULL;
@@ -64,9 +79,7 @@ unsigned DeclareSymbol( SymbolTable* symbolTable, Symbol* symbol ) {
   return 0;
 }
 
-typedef void (*ReleaseSymbolFunc)( struct avl_tree_node** nodePtr );
-
-void ReleaseSymbolRun( struct avl_tree_node** nodePtr ) {
+void ReleaseSymbolRun( Symbol* symbol ) {
 }
 
 unsigned DeclareRun( SymbolTable* symbolTable, unsigned entryPoint ) {
@@ -84,14 +97,12 @@ unsigned DeclareRun( SymbolTable* symbolTable, unsigned entryPoint ) {
   newSymbol->value = entryPoint;
 
   result = DeclareSymbol(symbolTable, newSymbol);
-  if( result ) {
-    if( newSymbol ) {
-      free( newSymbol );
-    }
-    return 4;
-  }
+  if( result == 0 ) { return 0; }
 
-  return 0;
+  if( newSymbol ) {
+    free( newSymbol );
+  }
+  return 4;
 }
 
 int main( int argc, char** argv ) {

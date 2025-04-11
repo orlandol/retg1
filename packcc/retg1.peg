@@ -80,12 +80,12 @@ funcDeclaration <-
 funcBlock <-
   'func' _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
     (_ localVarBlock)*
-    (_ !'end' (STATEMENT / 'return'))*
-  'end'
+    (_ ('return' / STATEMENT))*
+  _ 'end'
 / 'func' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
     (_ localVarBlock)*
-    (_ !'end' (STATEMENT / 'return' _ EXPR))*
-  'end'
+    (_ ('return' _ EXPR / STATEMENT))*
+  _ 'end'
 
 funcParamDeclaration <-
   TYPESPEC _ (!reservedWord IDENT) (_ ',' _ funcParamDeclaration)* {

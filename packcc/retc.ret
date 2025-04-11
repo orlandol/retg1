@@ -19,7 +19,7 @@
   type uint[1234] global8
 
   func import stdcall ExitProcess( uint uExitCode )
-    from 'kernel.dll' as 'ExitProcess'
+    from 'kernel.dll'
 
   func declare Func2()
 
