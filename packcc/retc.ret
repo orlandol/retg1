@@ -9,24 +9,41 @@
 
   const int myInt = 1_23
 
-  type uint global1
-  type @uint global2
-  type @uint[] global3
-  type @uint[1234] global4
-  type #uint global5
-  type #uint[] global6
-  type #uint[1234] global7
-  type uint[1234] global8
+  enum bool enum1
+  end
+
+  enum uint enum2
+    field1 = 1234
+    field2 = field1
+    field3 = field2, field4, field5
+    field6, field7, field8 = field3
+    field9, field10
+    field11
+  end
+
+  type uint type1
+  type @uint type2
+  type @uint[] type3
+  type @uint[1234] type4
+  type #uint type5
+  type #uint[] type6
+  type #uint[1234] type7
+  type uint[1234] type8
+  type type9
+
+  type func
 
   func import stdcall ExitProcess( uint uExitCode )
-    from 'kernel.dll'
+    from 'kernel.dll' as 'ExitProcess'
 
   func declare Func2()
 
-  func Func1()
+  func uint Func1()
+    return 1234
   end
 
   func Func2()
+    return
   end
 
 run

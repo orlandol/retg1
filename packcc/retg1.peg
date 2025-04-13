@@ -9,7 +9,7 @@ program <-
 runBlock <-
   'run'
     (_ !'run' localVarBlock)*
-    (_ ('return' / STATEMENT))*
+    (_ ('return' _ EXPR / STATEMENT))*
   _ 'end'
 
 programDeclaration <- 'program' _ <IDENT> {
@@ -47,15 +47,45 @@ CONSTINDEXINT <-
   }
 
 globalDeclaration <-
-  'const' _ BASICTYPE _ <IDENT> _ '=' _ CONSTINIT {
-    printf( "CONST: '%s'\n", $1 );
-  }
-/ 'type' _ TYPESPEC _ <IDENT> {
-    printf( "TYPE: '%s'\n", $2 );
-  }
+  constDeclaration
+/ enumDeclaration
+/ typeAliasDeclaration
 / funcImport
 / funcDeclaration
 / funcBlock
+
+constDeclaration <-
+  'const' _ BASICTYPE _ <IDENT> _ '=' _ CONSTINIT {
+    printf( "CONST: '%s'\n", $1 );
+  }
+
+enumDeclaration <-
+  'enum' _ BASICTYPE _ <IDENT>
+  (_ !'end' enumFieldDeclaration)*
+  _ 'end'
+
+enumFieldDeclaration <-
+  enumFieldDeclaration _ ',' _ enumFieldDeclaration
+/ enumSingleFieldAssignment
+/ enumSingleFieldDeclaration
+
+enumSingleFieldAssignment <-
+  <IDENT> _ '=' _ CONSTEXPR {
+    printf( "ENUMFIELD: '%s'\n", $1 );
+  }
+
+enumSingleFieldDeclaration <-
+  <IDENT> {
+    printf( "ENUMFIELD: '%s'\n", $1 );
+  }
+
+typeAliasDeclaration <-
+  'type' _ (!reservedWord TYPESPEC) _ <IDENT> {
+    printf( "TYPE: '%s'\n", $1 );
+  }
+/ 'type' _ <IDENT> {
+    printf( "TYPE: '%s'\n", $2 );
+  }
 
 funcImport <-
   'func' _ 'import' _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
@@ -122,7 +152,7 @@ reservedWord <-
   'program' / 'uses' / 'const' / 'enum' / 'newtype' / 'type' / 'var'
   / 'func' / 'asm' / 'noframe' / 'object' / 'interface' / 'inherits'
   / 'implements' / 'constructor' / 'destructor' / 'method' / 'run' / 'end'
-  / 'if' / 'then' / 'elseif' / 'else' / 'endif'
+  / 'if' / 'then' / 'elseif' / 'else' / 'endif' / 'goto'
 # / ...
 
 STATEMENT <-
@@ -160,7 +190,7 @@ CONSTINIT <-
 / CONSTEXPR
 
 CONSTEXPR <-
-  CONSTINT
+  CONSTINT / IDENT
 
 CONSTINT <-
   '0b'<[_0-1]+> {
@@ -196,6 +226,8 @@ INTNUM <-
 LABELNAME <- IDENT
 
 IDENT <- [_a-zA-Z][_a-zA-Z0-9]*
+
+IDENTNAME <- !reservedWord IDENT
 
 _ <- (space / eol / singleLineComment / multiLineComment)*
 
