@@ -18,11 +18,15 @@ program PROGRAMNAME
 
   struct STRUCTNAME [inherits STRUCTNAME [',' ...]]
     TYPESPEC FIELDNAME [',' ...]
+    union FIELDNAME '(' TYPESPEC [',' ...] ')'
+    struct FIELDNAME [inherits (STRUCTNAME | UNIONNAME) [',' ...]]
     [...]
   end
 
   union UNIONNAME [inherits STRUCTNAME [',' ...]]
     TYPESPEC FIELDNAME [',' ...]
+    union FIELDNAME '(' TYPESPEC [',' ...] ')'
+    struct FIELDNAME [inherits (STRUCTNAME | UNIONNAME) [',' ...]]
     [...]
   end
 

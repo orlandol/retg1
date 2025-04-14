@@ -6,6 +6,17 @@ program <-
     (_ globalDeclaration)*
   _ eof
 
+#
+# Qualified identifier grammar parses each component in the correct order
+#
+#qident <-
+#  qident _ '.' _ <IDENT> {
+#    printf( "QIDENT: '%s'\n", $1 );
+#  }
+#/ <IDENT> {
+#    printf( "QIDENT: '%s'\n", $2 );
+#  }
+
 runBlock <-
   'run'
     (_ !'run' localVarBlock)*
@@ -50,6 +61,7 @@ globalDeclaration <-
   constDeclaration
 / enumDeclaration
 / typeAliasDeclaration
+/ structBlock
 / funcImport
 / funcDeclaration
 / funcBlock
@@ -86,6 +98,38 @@ typeAliasDeclaration <-
 / 'type' _ <IDENT> {
     printf( "TYPE: '%s'\n", $2 );
   }
+
+structBlock <-
+  'struct' _ <IDENT>
+  (_ !'end' structFieldDeclaration)*
+  _ 'end' {
+  }
+
+structFieldDeclaration <-
+  structFieldDeclaration _ ',' _ structFieldDeclaration
+/ structSingleFieldDeclaration
+
+structSingleFieldDeclaration <-
+  TYPESPEC _ <IDENT> {
+    printf( "STRUCTFIELD: '%s'\n", $1 );
+  }
+/ <IDENT> {
+    printf( "STRUCTFIELD: '%s'\n", $2 );
+  }
+/ structNestedUnionFieldDeclaration
+/ structNestedStructFieldDeclaration
+
+structNestedUnionFieldDeclaration <-
+  'union' _ <IDENT> _ '(' _ structNestedUnionTypeSpec _ ')' {
+    printf( "NESTEDUNIONFIELD: '%s'\n", $1 );
+  }
+
+structNestedUnionTypeSpec <-
+  structNestedUnionTypeSpec (_ ',' _ structNestedUnionTypeSpec)*
+/ TYPESPEC
+
+structNestedStructFieldDeclaration <-
+  'struct' _
 
 funcImport <-
   'func' _ 'import' _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
