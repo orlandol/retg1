@@ -62,6 +62,7 @@ globalDeclaration <-
 / enumBlock
 / typeAliasDeclaration
 / structBlock
+/ unionBlock
 / funcImport
 / funcDeclaration
 / funcBlock
@@ -170,11 +171,79 @@ structNestedUnionType <-
     printf( "    STRUCTNESTEDUNIONFIELDTYPE: '%s'\n", $2 );
   }
 
+###
+unionBlock <-
+  unionDeclaration
+  (_ !'end' unionInherit)*
+  (_ !'end' unionFieldDeclaration)*
+  _ 'end' {
+  }
+
+unionDeclaration <-
+  'union' _ 'packed'? _ <IDENT> {
+    printf( "UNION: '%s'\n", $1 );
+  }
+
+unionInherit <-
+  'inherits' _ unionInheritName (_ ',' _ unionInheritName)*
+
+unionInheritName <-
+  <IDENT> {
+    printf( "  UNIONINHERIT: '%s'\n", $1 );
+  }
+
+unionFieldDeclaration <-
+  unionNestedStructBlockField
+/ unionNestedUnionFieldDeclaration
+/ TYPESPEC _ <IDENT> {
+    printf( "  UNIONFIELD: '%s'\n", $1 );
+  }
+/ ',' _ <IDENT> {
+    printf( "  UNIONFIELD: '%s'\n", $2 );
+  }
+/ unionFieldDeclaration
+
+unionNestedStructBlockField <-
+  unionNestedStructDeclarationField
+  (_ !'end' unionNestedStructNestedFieldDeclaration)*
+  _ 'end'
+
+unionNestedStructDeclarationField <-
+  'struct' _ <IDENT> {
+    printf( "  UNIONNESTEDSTRUCTFIELD: '%s'\n", $1 );
+  }
+
+unionNestedStructNestedFieldDeclaration <-
+  TYPESPEC _ <IDENT> {
+    printf( "    UNIONNESTEDSTRUCTNESTEDFIELD: '%s'\n", $1 );
+  }
+/ ',' _ <IDENT> {
+    printf( "    UNIONNESTEDSTRUCTNESTEDFIELD: '%s'\n", $2 );
+  }
+/ unionNestedStructNestedFieldDeclaration
+
+unionNestedUnionFieldDeclaration <-
+  unionNestedUnionFieldDeclareName _ '(' (_ unionNestedUnionType)+ _ ')'
+
+unionNestedUnionFieldDeclareName <-
+  'union' _ <IDENT> {
+    printf( "  UNIONNESTEDUNIONFIELD: '%s'\n", $1 );
+  }
+
+unionNestedUnionType <-
+  <TYPESPEC> {
+    printf( "    UNIONNESTEDUNIONFIELDTYPE: '%s'\n", $1 );
+  }
+/ ',' _ <TYPESPEC> {
+    printf( "    UNIONNESTEDUNIONFIELDTYPE: '%s'\n", $2 );
+  }
+###
+
 funcImport <-
   'func' _ 'import' _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
   _ funcImportFrom _ funcImportLinkAs {
   }
-/ 'func' _ 'import' _ CALLSPEC _ TYPESPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+/ 'func' _ 'import' _ TYPESPEC _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
   _ funcImportFrom? _ funcImportLinkAs? {
   }
 
@@ -236,30 +305,44 @@ reservedWord <-
   / 'func' / 'asm' / 'noframe' / 'object' / 'interface' / 'inherits'
   / 'implements' / 'constructor' / 'destructor' / 'method' / 'run' / 'end'
   / 'if' / 'then' / 'elseif' / 'else' / 'endif' / 'goto'
+  / 'for' / 'to' / 'downto' / 'foreach' / 'in' / 'next'
 # / ...
 
 STATEMENT <-
   labelDeclaration
-/ 'goto' _ <LABELNAME> {
-  }
+/ gotoStatement
 / ifStatementBlock
 
 labelDeclaration <-
   <IDENT> _ ':' {
   }
 
+gotoStatement <-
+  'goto' _ <LABELNAME> {
+    printf( "GOTO: '%s'\n", $1 );
+  }
+
 ifStatementBlock <-
   'if' _ CONDITION _ 'then' _ STATEMENT {
+    printf( "IFTHEN\n" );
   }
-/ 'if' _ CONDITION
+/ 'if' _ CONDITION {
+    printf( "IF\n" );
+  }
     (_ !'elseif' !'else' !'endif' !'then' STATEMENT)*
-  (_ 'elseif' _ CONDITION
+  (_ 'elseif' _ CONDITION {
+    printf( "ELSEIF\n" );
+  }
     (_ !'elseif' !'else' !'endif' !'then' STATEMENT)*
   )*
-  (_ 'else'
+  (_ 'else' {
+    printf( "ELSE\n" );
+  }
     (_ !'elseif' !'else' !'endif' !'then' STATEMENT)*
   )?
-  _ 'endif'
+  _ 'endif' {
+    printf( "ENDIF\n" );
+  }
 
 CONDITION <-
   IDENT _ '==' _ IDENT
