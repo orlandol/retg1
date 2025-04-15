@@ -36,12 +36,11 @@
     @struct1 next
     uint field1, field2, field3
     bool field4
-    union field5 (uint, bool, type1)
+    union field5 (uint, int)
     struct field6
-      int nestedField1
-      uint nestedField2
+      uint nested6a
+      int nested6b
     end
-    union field6 (char)
   end
 
   struct struct2
@@ -51,6 +50,7 @@
   struct struct3
     inherits struct1, struct2
     char field8
+    union field9( char )
   end
 
   func import stdcall ExitProcess( uint uExitCode )

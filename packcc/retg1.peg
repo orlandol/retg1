@@ -59,7 +59,7 @@ CONSTINDEXINT <-
 
 globalDeclaration <-
   constDeclaration
-/ enumDeclaration
+/ enumBlock
 / typeAliasDeclaration
 / structBlock
 / funcImport
@@ -71,10 +71,15 @@ constDeclaration <-
     printf( "CONST: '%s'\n", $1 );
   }
 
-enumDeclaration <-
-  'enum' _ BASICTYPE _ <IDENT>
+enumBlock <-
+  enumDeclaration
   (_ !'end' enumFieldDeclaration)*
   _ 'end'
+
+enumDeclaration <-
+  'enum' _ BASICTYPE _ <IDENT> {
+    printf( "ENUM: '%s'\n", $1 );
+  }
 
 enumFieldDeclaration <-
   enumFieldDeclaration _ ',' _ enumFieldDeclaration
@@ -100,48 +105,82 @@ typeAliasDeclaration <-
   }
 
 structBlock <-
-  'struct' _ <IDENT>
+  structDeclaration
+  (_ !'end' structInherit)*
   (_ !'end' structFieldDeclaration)*
   _ 'end' {
   }
 
-structFieldDeclaration <-
-  structFieldDeclaration _ ',' _ structFieldDeclaration
-/ structSingleFieldDeclaration
+structDeclaration <-
+  'struct' _ 'packed'? _ <IDENT> {
+    printf( "STRUCT: '%s'\n", $1 );
+  }
 
-structSingleFieldDeclaration <-
-  TYPESPEC _ <IDENT> {
-    printf( "STRUCTFIELD: '%s'\n", $1 );
+structInherit <-
+  'inherits' _ structInheritName (_ ',' _ structInheritName)*
+
+structInheritName <-
+  <IDENT> {
+    printf( "  STRUCTINHERIT: '%s'\n", $1 );
   }
-/ <IDENT> {
-    printf( "STRUCTFIELD: '%s'\n", $2 );
-  }
+
+structFieldDeclaration <-
+  structNestedStructBlockField
 / structNestedUnionFieldDeclaration
-/ structNestedStructFieldDeclaration
+/ TYPESPEC _ <IDENT> {
+    printf( "  STRUCTFIELD: '%s'\n", $1 );
+  }
+/ ',' _ <IDENT> {
+    printf( "  STRUCTFIELD: '%s'\n", $2 );
+  }
+/ structFieldDeclaration
+
+structNestedStructBlockField <-
+  structNestedStructDeclarationField
+  (_ !'end' structNestedStructNestedFieldDeclaration)*
+  _ 'end'
+
+structNestedStructDeclarationField <-
+  'struct' _ <IDENT> {
+    printf( "  STRUCTNESTEDSTRUCTFIELD: '%s'\n", $1 );
+  }
+
+structNestedStructNestedFieldDeclaration <-
+  TYPESPEC _ <IDENT> {
+    printf( "    STRUCTNESTEDSTRUCTNESTEDFIELD: '%s'\n", $1 );
+  }
+/ ',' _ <IDENT> {
+    printf( "    STRUCTNESTEDSTRUCTNESTEDFIELD: '%s'\n", $2 );
+  }
+/ structNestedStructNestedFieldDeclaration
 
 structNestedUnionFieldDeclaration <-
-  'union' _ <IDENT> _ '(' _ structNestedUnionTypeSpec _ ')' {
-    printf( "NESTEDUNIONFIELD: '%s'\n", $1 );
+  structNestedUnionFieldDeclareName _ '(' (_ structNestedUnionType)+ _ ')'
+
+structNestedUnionFieldDeclareName <-
+  'union' _ <IDENT> {
+    printf( "  STRUCTNESTEDUNIONFIELD: '%s'\n", $1 );
   }
 
-structNestedUnionTypeSpec <-
-  structNestedUnionTypeSpec (_ ',' _ structNestedUnionTypeSpec)*
-/ TYPESPEC
-
-structNestedStructFieldDeclaration <-
-  'struct' _
+structNestedUnionType <-
+  <TYPESPEC> {
+    printf( "    STRUCTNESTEDUNIONFIELDTYPE: '%s'\n", $1 );
+  }
+/ ',' _ <TYPESPEC> {
+    printf( "    STRUCTNESTEDUNIONFIELDTYPE: '%s'\n", $2 );
+  }
 
 funcImport <-
   'func' _ 'import' _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
   _ funcImportFrom _ funcImportLinkAs {
   }
 / 'func' _ 'import' _ CALLSPEC _ TYPESPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
-  _ funcImportFrom _ funcImportLinkAs {
+  _ funcImportFrom? _ funcImportLinkAs? {
   }
 
-funcImportFrom <- ('from' _ FILENAME)?
+funcImportFrom <- ('from' _ <FILENAME>)
 
-funcImportLinkAs <- ('as' _ LINKNAME)?
+funcImportLinkAs <- ('as' _ <LINKNAME>)
 
 FILENAME <- STRING
 
