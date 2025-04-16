@@ -82,6 +82,13 @@
     union field9( char )
   end
 
+  var
+    uint global1 , global2, global3
+    uint global4, global5
+    uint global6
+    @char charPtr1
+  end
+
   func import stdcall ExitProcess( uint uExitCode )
     from 'kernel.dll' as 'ExitProcess'
 

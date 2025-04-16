@@ -63,6 +63,7 @@ globalDeclaration <-
 / typeAliasDeclaration
 / structBlock
 / unionBlock
+/ globalVarBlock
 / funcImport
 / funcDeclaration
 / funcBlock
@@ -171,7 +172,6 @@ structNestedUnionType <-
     printf( "    STRUCTNESTEDUNIONFIELDTYPE: '%s'\n", $2 );
   }
 
-###
 unionBlock <-
   unionDeclaration
   (_ !'end' unionInherit)*
@@ -237,14 +237,21 @@ unionNestedUnionType <-
 / ',' _ <TYPESPEC> {
     printf( "    UNIONNESTEDUNIONFIELDTYPE: '%s'\n", $2 );
   }
-###
+
+globalVarBlock <-
+  'var'
+  (_ !'end' globalVarDeclaration)*
+  _ 'end'
+
+globalVarDeclaration <-
+  TYPESPEC _ VARIDENT _ (',' _ VARIDENT _)*
 
 funcImport <-
   'func' _ 'import' _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
   _ funcImportFrom _ funcImportLinkAs {
   }
 / 'func' _ 'import' _ TYPESPEC _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
-  _ funcImportFrom? _ funcImportLinkAs? {
+  _ funcImportFrom _ funcImportLinkAs {
   }
 
 funcImportFrom <- ('from' _ <FILENAME>)
