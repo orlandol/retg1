@@ -38,7 +38,7 @@
   end
 
   struct packed struct2
-    @struct1 next
+    @struct2 next
     uint field1, field2, field3
     bool field4
     union field5 (uint, int)
@@ -53,7 +53,7 @@
   end
 
   struct struct4
-    inherits struct1, struct2
+    inherits struct1, struct2, struct3
     char field8
     union field9( char )
   end
@@ -62,7 +62,7 @@
   end
 
   union packed union2
-    @union1 next
+    @union2 next
     uint field1, field2, field3
     bool field4
     union field5 (uint, int)
@@ -77,7 +77,7 @@
   end
 
   union union4
-    inherits union1, union2
+    inherits union1, union2, union3
     char field8
     union field9( char )
   end
@@ -90,7 +90,7 @@
   end
 
   func import stdcall ExitProcess( uint uExitCode )
-    from 'kernel.dll' as 'ExitProcess'
+    //from 'kernel.dll' as 'ExitProcess'
 
   func declare Func2()
 
@@ -100,6 +100,42 @@
 
   func Func2()
     return
+  end
+
+  object object1
+  end
+
+  constructor object1()
+  end
+
+  destructor object1()
+  end
+
+  object packed object2
+    @object next
+    uint member1, member2, member3
+    bool member4
+    union member5 (uint, int)
+    struct member6
+      uint nested6a
+      int nested6b
+    end
+  end
+
+  constructor object2( member1, member6.nested6b )
+  end
+
+  destructor object2()
+  end
+
+  object object3
+    int member7
+  end
+
+  object object4
+    inherits object1, object2, object3
+    char member8
+    union member9( char )
   end
 
 run

@@ -1,10 +1,15 @@
 
 program <-
   _ programDeclaration
-    (_ globalDeclaration)*
+  (_ globalDeclaration)*
   _ runBlock
-    (_ globalDeclaration)*
+  (_ globalDeclaration)*
   _ eof
+
+programDeclaration <-
+  _ 'program' _ <IDENT> {
+    printf( "[L%u] PROGRAM: '%s'\n", auxil->line, $1 );
+  }
 
 #
 # Qualified identifier grammar parses each component in the correct order
@@ -22,10 +27,6 @@ runBlock <-
     (_ !'run' localVarBlock)*
     (_ ('return' _ EXPR / STATEMENT))*
   _ 'end'
-
-programDeclaration <- 'program' _ <IDENT> {
-  printf( "[L%u] PROGRAM: '%s'\n", auxil->line, $1 );
-}
 
 TYPESPEC <-
   ('@' / '#') _ <TYPENAME> _ '[' _ ']' {
@@ -67,6 +68,9 @@ globalDeclaration <-
 / funcImport
 / funcDeclaration
 / funcBlock
+/ objectBlock
+/ objectConstructorBlock
+/ objectDestructorBlock
 
 constDeclaration <-
   'const' _ BASICTYPE _ <IDENT> _ '=' _ CONSTINIT {
@@ -246,39 +250,130 @@ globalVarBlock <-
 globalVarDeclaration <-
   TYPESPEC _ VARIDENT _ (',' _ VARIDENT _)*
 
+funcParamDeclarations <-
+  TYPESPEC _ (!reservedWord IDENT) (_ ',' _ funcParamDeclarations)* {
+  }
+
 funcImport <-
-  'func' _ 'import' _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+  'func' _ 'import' _ CALLSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
   _ funcImportFrom _ funcImportLinkAs {
   }
-/ 'func' _ 'import' _ TYPESPEC _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+/ 'func' _ 'import' _ TYPESPEC _ CALLSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
   _ funcImportFrom _ funcImportLinkAs {
   }
 
-funcImportFrom <- ('from' _ <FILENAME>)
+funcImportFrom <- ('from' _ <FILENAME>)?
 
-funcImportLinkAs <- ('as' _ <LINKNAME>)
+funcImportLinkAs <- ('as' _ <LINKNAME>)?
 
 FILENAME <- STRING
 
 LINKNAME <- STRING
 
 funcDeclaration <-
-  'func' _ 'declare' _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
-/ 'func' _ 'declare' _ TYPESPEC _ CALLSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+  'func' _ 'declare' _ CALLSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
+/ 'func' _ 'declare' _ TYPESPEC _ CALLSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
 
 funcBlock <-
-  'func' _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+  'func' _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
     (_ localVarBlock)*
     (_ ('return' / STATEMENT))*
   _ 'end'
-/ 'func' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' (_ funcParamDeclaration)* _ ')'
+/ 'func' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
     (_ localVarBlock)*
     (_ ('return' _ EXPR / STATEMENT))*
   _ 'end'
 
-funcParamDeclaration <-
-  TYPESPEC _ (!reservedWord IDENT) (_ ',' _ funcParamDeclaration)* {
+objectBlock <-
+  objectDeclaration
+  (_ !'end' objectInherit)*
+  (_ !'end' objectMemberDeclaration)*
+  _ 'end' {
   }
+
+objectDeclaration <-
+  'object' _ 'packed'? _ <IDENT> {
+    printf( "OBJECT: '%s'\n", $1 );
+  }
+
+objectInherit <-
+  'inherits' _ objectInheritName (_ ',' _ objectInheritName)*
+
+objectInheritName <-
+  <IDENT> {
+    printf( "  OBJECTINHERIT: '%s'\n", $1 );
+  }
+
+objectMemberDeclaration <-
+  objectNestedStructBlockField
+/ objectNestedUnionFieldDeclaration
+/ TYPESPEC _ <IDENT> {
+    printf( "  OBJECTMEMBER: '%s'\n", $1 );
+  }
+/ ',' _ <IDENT> {
+    printf( "  OBJECTMEMBER: '%s'\n", $2 );
+  }
+/ objectMemberDeclaration
+
+objectNestedStructBlockField <-
+  objectNestedStructDeclarationField
+  (_ !'end' objectNestedStructNestedFieldDeclaration)*
+  _ 'end'
+
+objectNestedStructDeclarationField <-
+  'struct' _ <IDENT> {
+    printf( "  OBJECTNESTEDSTRUCTFIELD: '%s'\n", $1 );
+  }
+
+objectNestedStructNestedFieldDeclaration <-
+  TYPESPEC _ <IDENT> {
+    printf( "    OBJECTNESTEDSTRUCTNESTEDFIELD: '%s'\n", $1 );
+  }
+/ ',' _ <IDENT> {
+    printf( "    OBJECTNESTEDSTRUCTNESTEDFIELD: '%s'\n", $2 );
+  }
+/ objectNestedStructNestedFieldDeclaration
+
+objectNestedUnionFieldDeclaration <-
+  objectNestedUnionFieldDeclareName _ '(' (_ objectNestedUnionType)+ _ ')'
+
+objectNestedUnionFieldDeclareName <-
+  'union' _ <IDENT> {
+    printf( "  OBJECTNESTEDUNIONFIELD: '%s'\n", $1 );
+  }
+
+objectNestedUnionType <-
+  <TYPESPEC> {
+    printf( "    OBJECTNESTEDUNIONFIELDTYPE: '%s'\n", $1 );
+  }
+/ ',' _ <TYPESPEC> {
+    printf( "    OBJECTNESTEDUNIONFIELDTYPE: '%s'\n", $2 );
+  }
+
+methodParamDeclarations <-
+  TYPESPEC _ (!reservedWord <IDENT>) (_ ',' _ methodParamDeclarations)* {
+  }
+
+constructorParamDeclarations <-
+  qualifiedObjectMember (_ ',' _ constructorParamDeclarations)*
+
+qualifiedObjectMember <-
+  qualifiedObjectMember _ '.' _ <IDENT> {
+  }
+/ <IDENT> {
+  }
+
+objectConstructorBlock <-
+  'constructor' _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' _ constructorParamDeclarations? _ ')'
+    (_ localVarBlock)*
+    (_ ('return' / STATEMENT))*
+  _ 'end'
+
+objectDestructorBlock <-
+  'destructor' _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' _ ')'
+    (_ localVarBlock)*
+    (_ ('return' / STATEMENT))*
+  _ 'end'
 
 STRING <- DOUBLEQUOTESTRING / SINGLEQUOTESTRING
 
