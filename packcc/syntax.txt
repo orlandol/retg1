@@ -75,11 +75,6 @@ program PROGRAMNAME
     [...]
   end
 
-  interface OBJECTNAME
-    method METHODSPEC METHODNAME '(' [TYPESPEC PARAMNAME [',' ...]] ')'
-    [...]
-  end
-
   interface INTERFACENAME
     implements OBJECTNAME [',' ...]
     [...]

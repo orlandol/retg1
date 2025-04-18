@@ -132,6 +132,12 @@
     int member7
   end
 
+  constructor object3()
+  end
+
+  destructor object3()
+  end
+
   object object4
     inherits object1, object2, object3
     char member8

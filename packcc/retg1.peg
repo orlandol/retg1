@@ -71,6 +71,8 @@ globalDeclaration <-
 / objectBlock
 / objectConstructorBlock
 / objectDestructorBlock
+/ interfaceBlock
+/ methodBlock
 
 constDeclaration <-
   'const' _ BASICTYPE _ <IDENT> _ '=' _ CONSTINIT {
@@ -112,7 +114,7 @@ typeAliasDeclaration <-
 
 structBlock <-
   structDeclaration
-  (_ !'end' structInherit)*
+  (_ !'end' structInherits)*
   (_ !'end' structFieldDeclaration)*
   _ 'end' {
   }
@@ -122,12 +124,12 @@ structDeclaration <-
     printf( "STRUCT: '%s'\n", $1 );
   }
 
-structInherit <-
-  'inherits' _ structInheritName (_ ',' _ structInheritName)*
+structInherits <-
+  'inherits' _ structInheritsName (_ ',' _ structInheritsName)*
 
-structInheritName <-
+structInheritsName <-
   <IDENT> {
-    printf( "  STRUCTINHERIT: '%s'\n", $1 );
+    printf( "  STRUCTINHERITS: '%s'\n", $1 );
   }
 
 structFieldDeclaration <-
@@ -178,7 +180,7 @@ structNestedUnionType <-
 
 unionBlock <-
   unionDeclaration
-  (_ !'end' unionInherit)*
+  (_ !'end' unionInherits)*
   (_ !'end' unionFieldDeclaration)*
   _ 'end' {
   }
@@ -188,12 +190,12 @@ unionDeclaration <-
     printf( "UNION: '%s'\n", $1 );
   }
 
-unionInherit <-
-  'inherits' _ unionInheritName (_ ',' _ unionInheritName)*
+unionInherits <-
+  'inherits' _ unionInheritsName (_ ',' _ unionInheritsName)*
 
-unionInheritName <-
+unionInheritsName <-
   <IDENT> {
-    printf( "  UNIONINHERIT: '%s'\n", $1 );
+    printf( "  UNIONINHERITS: '%s'\n", $1 );
   }
 
 unionFieldDeclaration <-
@@ -255,10 +257,10 @@ funcParamDeclarations <-
   }
 
 funcImport <-
-  'func' _ 'import' _ CALLSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
+  'func' _ 'import' _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
   _ funcImportFrom _ funcImportLinkAs {
   }
-/ 'func' _ 'import' _ TYPESPEC _ CALLSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
+/ 'func' _ 'import' _ TYPESPEC _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
   _ funcImportFrom _ funcImportLinkAs {
   }
 
@@ -271,22 +273,22 @@ FILENAME <- STRING
 LINKNAME <- STRING
 
 funcDeclaration <-
-  'func' _ 'declare' _ CALLSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
-/ 'func' _ 'declare' _ TYPESPEC _ CALLSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
+  'func' _ 'declare' _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
+/ 'func' _ 'declare' _ TYPESPEC _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
 
 funcBlock <-
-  'func' _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
+  'func' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
     (_ localVarBlock)*
     (_ ('return' / STATEMENT))*
   _ 'end'
-/ 'func' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' _ funcParamDeclarations? _ ')'
+/ 'func' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
     (_ localVarBlock)*
     (_ ('return' _ EXPR / STATEMENT))*
   _ 'end'
 
 objectBlock <-
   objectDeclaration
-  (_ !'end' objectInherit)*
+  (_ !'end' objectInherits)*
   (_ !'end' objectMemberDeclaration)*
   _ 'end' {
   }
@@ -296,12 +298,12 @@ objectDeclaration <-
     printf( "OBJECT: '%s'\n", $1 );
   }
 
-objectInherit <-
-  'inherits' _ objectInheritName (_ ',' _ objectInheritName)*
+objectInherits <-
+  'inherits' _ objectInheritsName (_ ',' _ objectInheritsName)*
 
-objectInheritName <-
+objectInheritsName <-
   <IDENT> {
-    printf( "  OBJECTINHERIT: '%s'\n", $1 );
+    printf( "  OBJECTINHERITS: '%s'\n", $1 );
   }
 
 objectMemberDeclaration <-
@@ -364,15 +366,57 @@ qualifiedObjectMember <-
   }
 
 objectConstructorBlock <-
-  'constructor' _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' _ constructorParamDeclarations? _ ')'
+  'constructor' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ constructorParamDeclarations? _ ')'
     (_ localVarBlock)*
     (_ ('return' / STATEMENT))*
   _ 'end'
 
 objectDestructorBlock <-
-  'destructor' _ CALLSPEC _ FUNCSPEC _ IDENT _ '(' _ ')'
+  'destructor' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ ')'
     (_ localVarBlock)*
     (_ ('return' / STATEMENT))*
+  _ 'end'
+
+interfaceBlock <-
+  interfaceDeclaration
+  (_ !'end' interfaceImplements)*
+  (_ !'end' interfaceInherits)*
+  (_ !'end' interfaceMethodDeclaration)*
+  _ 'end'
+
+interfaceDeclaration <-
+  'interface' _ <IDENT> {
+    printf( "INTERFACE: '%s'\n", $1 );
+  }
+
+interfaceImplements <-
+  'implements' _ interfaceImplementsName (_ ',' _ interfaceImplementsName)*
+
+interfaceImplementsName <-
+  <IDENT> {
+    printf( "  INTERFACEIMPLEMENTS: '%s'\n", $1 );
+  }
+
+interfaceInherits <-
+  'inherits' _ interfaceInheritsName (_ ',' _ interfaceInheritsName)*
+
+interfaceInheritsName <-
+  <IDENT> {
+    printf( "  INTERFACEINHERITS: '%s'\n", $1 );
+  }
+
+interfaceMethodDeclaration <-
+  'method' _ CALLSPEC _ <IDENT> _ '.' _ <IDENT> _ '(' _ methodParamDeclarations? _ ')'
+/ 'method' _ TYPESPEC _ CALLSPEC _ <IDENT> _ '.' _ <IDENT> _ '(' _ methodParamDeclarations? _ ')'
+
+methodBlock <-
+  'method' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '.' _ <IDENT> _ '(' _ methodParamDeclarations? _ ')'
+    (_ localVarBlock)*
+    (_ ('return' / STATEMENT))*
+  _ 'end'
+/ 'method' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '.' _ <IDENT> _ '(' _ methodParamDeclarations? _ ')'
+    (_ localVarBlock)*
+    (_ ('return' _ EXPR / STATEMENT))*
   _ 'end'
 
 STRING <- DOUBLEQUOTESTRING / SINGLEQUOTESTRING
