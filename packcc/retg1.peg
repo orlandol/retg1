@@ -1,14 +1,29 @@
 
 program <-
   _ programDeclaration
-  (_ globalDeclaration)*
+    (_ globalDeclaration)*
   _ runBlock
-  (_ globalDeclaration)*
+    (_ globalDeclaration)*
   _ eof
 
 programDeclaration <-
   _ 'program' _ <IDENT> {
     printf( "[L%u] PROGRAM: '%s'\n", auxil->line, $1 );
+  }
+
+RepeatNamedBegin <-
+  <IDENT> _ ':' _ 'repeat' {
+    printf( "  REPEAT: '%s'\n", $1 );
+  }
+
+RepeatBegin <-
+  'repeat' {
+    printf( "  REPEAT\n" );
+  }
+
+RepeatEnd <-
+  'when' _ CONDITION {
+    printf( "  WHEN\n" );
   }
 
 #
@@ -24,8 +39,8 @@ programDeclaration <-
 
 runBlock <-
   'run'
-    (_ !'run' localVarBlock)*
-    (_ ('return' _ EXPR / STATEMENT))*
+    (_ localVarBlock)*
+    (_ !'end' FUNCSTATEMENT)*
   _ 'end'
 
 TYPESPEC <-
@@ -114,7 +129,7 @@ typeAliasDeclaration <-
 
 structBlock <-
   structDeclaration
-  (_ !'end' structInherits)*
+  (_ structInherits)*
   (_ !'end' structFieldDeclaration)*
   _ 'end' {
   }
@@ -141,7 +156,6 @@ structFieldDeclaration <-
 / ',' _ <IDENT> {
     printf( "  STRUCTFIELD: '%s'\n", $2 );
   }
-/ structFieldDeclaration
 
 structNestedStructBlockField <-
   structNestedStructDeclarationField
@@ -180,7 +194,7 @@ structNestedUnionType <-
 
 unionBlock <-
   unionDeclaration
-  (_ !'end' unionInherits)*
+  (_ unionInherits)*
   (_ !'end' unionFieldDeclaration)*
   _ 'end' {
   }
@@ -207,7 +221,6 @@ unionFieldDeclaration <-
 / ',' _ <IDENT> {
     printf( "  UNIONFIELD: '%s'\n", $2 );
   }
-/ unionFieldDeclaration
 
 unionNestedStructBlockField <-
   unionNestedStructDeclarationField
@@ -279,16 +292,16 @@ funcDeclaration <-
 funcBlock <-
   'func' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
     (_ localVarBlock)*
-    (_ ('return' / STATEMENT))*
+    (_ UNTYPEDFUNCSTATEMENT)*
   _ 'end'
 / 'func' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
     (_ localVarBlock)*
-    (_ ('return' _ EXPR / STATEMENT))*
+    (_ FUNCSTATEMENT)*
   _ 'end'
 
 objectBlock <-
   objectDeclaration
-  (_ !'end' objectInherits)*
+  (_ objectInherits)*
   (_ !'end' objectMemberDeclaration)*
   _ 'end' {
   }
@@ -315,7 +328,6 @@ objectMemberDeclaration <-
 / ',' _ <IDENT> {
     printf( "  OBJECTMEMBER: '%s'\n", $2 );
   }
-/ objectMemberDeclaration
 
 objectNestedStructBlockField <-
   objectNestedStructDeclarationField
@@ -352,10 +364,6 @@ objectNestedUnionType <-
     printf( "    OBJECTNESTEDUNIONFIELDTYPE: '%s'\n", $2 );
   }
 
-methodParamDeclarations <-
-  TYPESPEC _ (!reservedWord <IDENT>) (_ ',' _ methodParamDeclarations)* {
-  }
-
 constructorParamDeclarations <-
   qualifiedObjectMember (_ ',' _ constructorParamDeclarations)*
 
@@ -368,20 +376,24 @@ qualifiedObjectMember <-
 objectConstructorBlock <-
   'constructor' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ constructorParamDeclarations? _ ')'
     (_ localVarBlock)*
-    (_ ('return' / STATEMENT))*
+    (_ UNTYPEDFUNCSTATEMENT)*
   _ 'end'
 
 objectDestructorBlock <-
   'destructor' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ ')'
     (_ localVarBlock)*
-    (_ ('return' / STATEMENT))*
+    (_ UNTYPEDFUNCSTATEMENT)*
   _ 'end'
+
+methodParamDeclarations <-
+  TYPESPEC _ (!reservedWord <IDENT>) (_ ',' _ methodParamDeclarations)* {
+  }
 
 interfaceBlock <-
   interfaceDeclaration
-  (_ !'end' interfaceImplements)*
-  (_ !'end' interfaceInherits)*
-  (_ !'end' interfaceMethodDeclaration)*
+  (_ interfaceImplements)*
+  (_ interfaceInherits)*
+  (_ interfaceMethodDeclaration)*
   _ 'end'
 
 interfaceDeclaration <-
@@ -406,18 +418,26 @@ interfaceInheritsName <-
   }
 
 interfaceMethodDeclaration <-
-  'method' _ CALLSPEC _ <IDENT> _ '.' _ <IDENT> _ '(' _ methodParamDeclarations? _ ')'
-/ 'method' _ TYPESPEC _ CALLSPEC _ <IDENT> _ '.' _ <IDENT> _ '(' _ methodParamDeclarations? _ ')'
+  'method' _ CALLSPEC _ <IDENT> _ '(' _ methodParamDeclarations? _ ')' {
+    printf( "  INTERFACEMETHOD: '%s'\n", $1 );
+  }
+/ 'method' _ TYPESPEC _ CALLSPEC _ <IDENT> _ '(' _ methodParamDeclarations? _ ')' {
+    printf( "  INTERFACEMETHOD: '%s'\n", $2 );
+  }
 
 methodBlock <-
   'method' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '.' _ <IDENT> _ '(' _ methodParamDeclarations? _ ')'
     (_ localVarBlock)*
-    (_ ('return' / STATEMENT))*
-  _ 'end'
+    (_ UNTYPEDFUNCSTATEMENT)*
+  _ 'end' {
+      printf( "METHOD: '%s.%s'\n", $1, $2 );
+    }
 / 'method' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '.' _ <IDENT> _ '(' _ methodParamDeclarations? _ ')'
     (_ localVarBlock)*
-    (_ ('return' _ EXPR / STATEMENT))*
-  _ 'end'
+    (_ FUNCSTATEMENT)*
+  _ 'end' {
+      printf( "METHOD: '%s.%s'\n", $3, $4 );
+    }
 
 STRING <- DOUBLEQUOTESTRING / SINGLEQUOTESTRING
 
@@ -454,44 +474,150 @@ reservedWord <-
   / 'for' / 'to' / 'downto' / 'foreach' / 'in' / 'next'
 # / ...
 
-STATEMENT <-
-  labelDeclaration
-/ gotoStatement
-/ ifStatementBlock
+UNTYPEDFUNCSTATEMENT <-
+  UntypedReturn
+/ LoopNamedBreak
+/ LoopBreak
+/ LoopNamedNext
+/ LoopNext
+/ Goto
+/ IfThen _ labelDeclaration? _ UNTYPEDFUNCSTATEMENT
+/ IfBegin
+    _ !'elseif' !'else' !'endif' UNTYPEDFUNCSTATEMENT?
+  (IfElseIf
+    _ !'elseif' !'else' !'endif' UNTYPEDFUNCSTATEMENT?
+  )*
+  (IfElse
+    _ !'endif' UNTYPEDFUNCSTATEMENT?
+  )?
+  IfEnd
+/ WhileNamedBegin
+    _ !'endwhile' UNTYPEDFUNCSTATEMENT?
+  WhileEnd
+/ WhileBegin
+    _ !'endwhile' UNTYPEDFUNCSTATEMENT?
+  WhileEnd
+/ RepeatNamedBegin
+    _ !'when' UNTYPEDFUNCSTATEMENT?
+  RepeatEnd
+/ RepeatBegin
+    _ !'when' UNTYPEDFUNCSTATEMENT?
+  RepeatEnd
+/ labelDeclaration _ UNTYPEDFUNCSTATEMENT?
+
+FUNCSTATEMENT <-
+  Return
+/ LoopNamedBreak
+/ LoopBreak
+/ LoopNamedNext
+/ LoopNext
+/ Goto
+/ IfThen _ labelDeclaration? _ FUNCSTATEMENT
+/ IfBegin
+    _ !'endif' FUNCSTATEMENT?
+  (IfElseIf
+    _ !'endif' FUNCSTATEMENT?
+  )*
+  (IfElse
+    _ !'endif' FUNCSTATEMENT?
+  )?
+  IfEnd
+/ WhileNamedBegin
+    _ !'endwhile' FUNCSTATEMENT?
+  WhileEnd
+/ WhileBegin
+    _ !'endwhile' FUNCSTATEMENT?
+  WhileEnd
+/ RepeatNamedBegin
+    _ !'when' FUNCSTATEMENT?
+  RepeatEnd
+/ RepeatBegin
+    _ !'when' FUNCSTATEMENT?
+  RepeatEnd
+/ labelDeclaration _ FUNCSTATEMENT?
+
+Return <-
+  'return' _ EXPR {
+    printf( "  RETURN: EXPR\n" );
+  }
+
+UntypedReturn <-
+  'return' {
+    printf( "  RETURN\n" );
+  }
+
+LoopNamedBreak <-
+  'break' _ (!reservedWord <IDENT>) {
+    printf( "  BREAK: '%s'\n", $1 );
+  }
+
+LoopBreak <-
+  'break' {
+    printf( "  BREAK\n" );
+  }
+
+LoopNamedNext <-
+  'next' _ (!reservedWord <IDENT>) {
+    printf( "  NEXT: '%s'\n", $1 );
+  }
+
+LoopNext <-
+  'next' {
+    printf( "  NEXT:\n" );
+  }
+
+Goto <-
+  'goto' _ <IDENT> {
+    printf( "  GOTO: '%s'\n", $1 );
+  }
+
+IfThen <-
+  'if' _ CONDITION _ 'then' {
+    printf( "  IFTHEN\n" );
+  }
+
+IfBegin <-
+  'if' _ CONDITION {
+    printf( "  IF\n" );
+  }
+
+IfElseIf <-
+  'elseif' _ CONDITION {
+    printf( "  ELSEIF\n" );
+  }
+
+IfElse <-
+  'else' {
+    printf( "  ELSE\n" );
+  }
+
+IfEnd <-
+  'endif' {
+    printf( "  ENDIF\n" );
+  }
+
+WhileNamedBegin <-
+  <IDENT> _ ':' _ 'while' _ CONDITION {
+    printf( "  WHILE: '%s'\n" );
+  }
+
+WhileBegin <-
+  'while' _ CONDITION {
+    printf( "  WHILE\n" );
+  }
+
+WhileEnd <-
+  'endwhile' {
+    printf( "  ENDWHILE\n" );
+  }
 
 labelDeclaration <-
   <IDENT> _ ':' {
-  }
-
-gotoStatement <-
-  'goto' _ <LABELNAME> {
-    printf( "GOTO: '%s'\n", $1 );
-  }
-
-ifStatementBlock <-
-  'if' _ CONDITION _ 'then' _ STATEMENT {
-    printf( "IFTHEN\n" );
-  }
-/ 'if' _ CONDITION {
-    printf( "IF\n" );
-  }
-    (_ !'elseif' !'else' !'endif' !'then' STATEMENT)*
-  (_ 'elseif' _ CONDITION {
-    printf( "ELSEIF\n" );
-  }
-    (_ !'elseif' !'else' !'endif' !'then' STATEMENT)*
-  )*
-  (_ 'else' {
-    printf( "ELSE\n" );
-  }
-    (_ !'elseif' !'else' !'endif' !'then' STATEMENT)*
-  )?
-  _ 'endif' {
-    printf( "ENDIF\n" );
+    printf( "  LABEL: '%s'\n", $1 );
   }
 
 CONDITION <-
-  IDENT _ '==' _ IDENT
+  (CONSTINT / IDENT) _ '==' _ (CONSTINT / IDENT)
 
 BASICTYPE <- ('int' / 'uint' / 'char' / 'bool')
 
@@ -519,7 +645,7 @@ CONSTINT <-
   }
 
 EXPR <-
-  INTNUM
+  INTNUM / IDENT
 
 INTNUM <-
   '0b'<[_0-1]+> {
@@ -534,8 +660,6 @@ INTNUM <-
 / <[_0-9]+> {
     printf( "  = INTEGER: %s\n", $4 );
   }
-
-LABELNAME <- IDENT
 
 IDENT <- [_a-zA-Z][_a-zA-Z0-9]*
 

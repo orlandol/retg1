@@ -90,15 +90,15 @@
   end
 
   func import stdcall ExitProcess( uint uExitCode )
-    //from 'kernel.dll' as 'ExitProcess'
+    from 'kernel.dll' as 'ExitProcess'
 
-  func declare Func2()
+  func declare func2()
 
-  func uint Func1()
+  func uint func1()
     return 1234
   end
 
-  func Func2()
+  func func2()
     return
   end
 
@@ -144,6 +144,30 @@
     union member9( char )
   end
 
+  interface interface1
+  end
+
+  interface interface2
+    implements object1, object2, object3
+  end
+
+  interface interface3
+    inherits interface1, interface2
+  end
+
+  interface interface4
+    implements object4
+    inherits interface3, interface4
+    method method1()
+    method uint method2()
+  end
+
+  method interface4.method1()
+  end
+
+  method uint interface4.method2()
+  end
+
 run
   var
     uint local1 , local2, local3
@@ -156,10 +180,15 @@ MyLabel:
   if local1 == local2
     then goto MyLabel
 
+
+  if local3 == local4
+  else
+  endif
+
   if local1 == local2
     if local1 == local5
       then goto MyLabel
-  elseif local1 == local3
+   elseif local1 == local3
     if local1 == local5
       then if local1 == local6
         then goto MyLabel
@@ -167,7 +196,20 @@ MyLabel:
   else
   endif
 
-
   if local1 == local2
+  elseif local2 == local3
+  else
   endif
+
+  while local1 == local2
+  endwhile
+
+  outerLoop:while local1 == local2
+
+    innerLoop:while local3 == local4
+      if local1 == local3
+        then break outerLoop
+    endwhile
+
+  endwhile
 end
