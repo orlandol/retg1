@@ -96,6 +96,11 @@ program PROGRAMNAME
     [...]
   end
 
+  operator TYPESPEC OP TYPESPEC
+    [OPSTATEMENT]
+    [...]
+  end
+
 run
   var
     TYPESPEC LOCALVARNAME ['=' LOCALINIT] [',' ...]
