@@ -40,7 +40,7 @@ RepeatEnd <-
 runBlock <-
   'run'
     (_ localVarBlock)*
-    (_ !'end' FUNCSTATEMENT)*
+    (_ !'end' TYPEDBLOCKSTATEMENT)*
   _ 'end'
 
 TYPESPEC <-
@@ -292,11 +292,11 @@ funcDeclaration <-
 funcBlock <-
   'func' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
     (_ localVarBlock)*
-    (_ UNTYPEDFUNCSTATEMENT)*
+    (_ UNTYPEDBLOCKSTATEMENT)*
   _ 'end'
 / 'func' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
     (_ localVarBlock)*
-    (_ FUNCSTATEMENT)*
+    (_ TYPEDBLOCKSTATEMENT)*
   _ 'end'
 
 objectBlock <-
@@ -376,13 +376,13 @@ qualifiedObjectMember <-
 objectConstructorBlock <-
   'constructor' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ constructorParamDeclarations? _ ')'
     (_ localVarBlock)*
-    (_ UNTYPEDFUNCSTATEMENT)*
+    (_ UNTYPEDBLOCKSTATEMENT)*
   _ 'end'
 
 objectDestructorBlock <-
   'destructor' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ ')'
     (_ localVarBlock)*
-    (_ UNTYPEDFUNCSTATEMENT)*
+    (_ UNTYPEDBLOCKSTATEMENT)*
   _ 'end'
 
 methodParamDeclarations <-
@@ -428,13 +428,13 @@ interfaceMethodDeclaration <-
 methodBlock <-
   'method' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '.' _ <IDENT> _ '(' _ methodParamDeclarations? _ ')'
     (_ localVarBlock)*
-    (_ UNTYPEDFUNCSTATEMENT)*
+    (_ UNTYPEDBLOCKSTATEMENT)*
   _ 'end' {
       printf( "METHOD: '%s.%s'\n", $1, $2 );
     }
 / 'method' _ TYPESPEC _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '.' _ <IDENT> _ '(' _ methodParamDeclarations? _ ')'
     (_ localVarBlock)*
-    (_ FUNCSTATEMENT)*
+    (_ TYPEDBLOCKSTATEMENT)*
   _ 'end' {
       printf( "METHOD: '%s.%s'\n", $3, $4 );
     }
@@ -474,146 +474,136 @@ reservedWord <-
   / 'for' / 'to' / 'downto' / 'foreach' / 'in' / 'next'
 # / ...
 
-UNTYPEDFUNCSTATEMENT <-
-  UntypedReturn
-/ LoopNamedBreak
-/ LoopBreak
-/ LoopNamedNext
-/ LoopNext
-/ Goto
-/ IfThen _ labelDeclaration? _ UNTYPEDFUNCSTATEMENT
-/ IfBegin
-    _ !'elseif' !'else' !'endif' UNTYPEDFUNCSTATEMENT?
-  (IfElseIf
-    _ !'elseif' !'else' !'endif' UNTYPEDFUNCSTATEMENT?
-  )*
-  (IfElse
-    _ !'endif' UNTYPEDFUNCSTATEMENT?
-  )?
-  IfEnd
-/ WhileNamedBegin
-    _ !'endwhile' UNTYPEDFUNCSTATEMENT?
-  WhileEnd
-/ WhileBegin
-    _ !'endwhile' UNTYPEDFUNCSTATEMENT?
-  WhileEnd
-/ RepeatNamedBegin
-    _ !'when' UNTYPEDFUNCSTATEMENT?
-  RepeatEnd
-/ RepeatBegin
-    _ !'when' UNTYPEDFUNCSTATEMENT?
-  RepeatEnd
-/ labelDeclaration _ UNTYPEDFUNCSTATEMENT?
+UNTYPEDBLOCKSTATEMENT <-
+  untypedReturn
+/ untypedIfBlock
+/ untypedWhileBlock
+/ gotoStatement
+/ labelDeclaration
 
-FUNCSTATEMENT <-
-  Return
-/ LoopNamedBreak
-/ LoopBreak
-/ LoopNamedNext
-/ LoopNext
-/ Goto
-/ IfThen _ labelDeclaration? _ FUNCSTATEMENT
-/ IfBegin
-    _ !'endif' FUNCSTATEMENT?
-  (IfElseIf
-    _ !'endif' FUNCSTATEMENT?
-  )*
-  (IfElse
-    _ !'endif' FUNCSTATEMENT?
-  )?
-  IfEnd
-/ WhileNamedBegin
-    _ !'endwhile' FUNCSTATEMENT?
-  WhileEnd
-/ WhileBegin
-    _ !'endwhile' FUNCSTATEMENT?
-  WhileEnd
-/ RepeatNamedBegin
-    _ !'when' FUNCSTATEMENT?
-  RepeatEnd
-/ RepeatBegin
-    _ !'when' FUNCSTATEMENT?
-  RepeatEnd
-/ labelDeclaration _ FUNCSTATEMENT?
+UNTYPEDBLOCKLOOPSTATEMENT <-
+  loopBreak
+/ loopNext
+/ untypedReturn
+/ untypedLoopIfBlock
+/ untypedWhileBlock
+/ gotoStatement
+/ labelDeclaration
 
-Return <-
-  'return' _ EXPR {
-    printf( "  RETURN: EXPR\n" );
-  }
-
-UntypedReturn <-
+untypedReturn <-
   'return' {
     printf( "  RETURN\n" );
   }
 
-LoopNamedBreak <-
-  'break' _ (!reservedWord <IDENT>) {
-    printf( "  BREAK: '%s'\n", $1 );
+untypedIfBlock <-
+  'if' _ CONDITION
+    _ 'then' _ UNTYPEDBLOCKSTATEMENT
+/ 'if' _ CONDITION _ !'then'
+    (_ !'elseif' !'else' !'endif' UNTYPEDBLOCKSTATEMENT)*
+  (_ 'elseif' _ CONDITION
+    (_ !'else' !'endif' UNTYPEDBLOCKSTATEMENT)*
+  )*
+  (_ 'else'
+    (_ !'endif' UNTYPEDBLOCKSTATEMENT)*
+  )?
+  _ 'endif'
+
+untypedWhileBlock <-
+  (!reservedWord <IDENT> _ ':' _)? 'while' {
+    printf( "  WHILE: '%s'\n", $1 );
+  }
+    (_ !'endwhile' UNTYPEDBLOCKLOOPSTATEMENT)*
+ _ 'endwhile' {
+    printf( "  ENDWHILE\n" );
   }
 
-LoopBreak <-
-  'break' {
-    printf( "  BREAK\n" );
+untypedLoopIfBlock <-
+  'if' _ CONDITION
+    _ 'then' _ UNTYPEDBLOCKLOOPSTATEMENT
+/ 'if' _ CONDITION _ !'then'
+    (_ !'elseif' !'else' !'endif' UNTYPEDBLOCKLOOPSTATEMENT)*
+  (_ 'elseif' _ CONDITION
+    (_ !'else' !'endif' UNTYPEDBLOCKLOOPSTATEMENT)*
+  )*
+  (_ 'else'
+    (_ !'endif' UNTYPEDBLOCKLOOPSTATEMENT)*
+  )?
+  _ 'endif'
+
+TYPEDBLOCKSTATEMENT <-
+  typedReturn
+/ typedIfBlock
+/ typedWhileBlock
+/ gotoStatement
+/ labelDeclaration
+
+TYPEDBLOCKLOOPSTATEMENT <-
+  loopBreak
+/ loopNext
+/ typedReturn
+/ typedLoopIfBlock
+/ typedWhileBlock
+/ gotoStatement
+/ labelDeclaration
+
+typedReturn <-
+  'return' _ EXPR {
+    printf( "  RETURN EXPR\n" );
   }
 
-LoopNamedNext <-
-  'next' _ (!reservedWord <IDENT>) {
-    printf( "  NEXT: '%s'\n", $1 );
+typedIfBlock <-
+  'if' _ CONDITION
+    _ 'then' _ TYPEDBLOCKSTATEMENT
+/ 'if' _ CONDITION _ !'then'
+    (_ !'elseif' !'else' !'endif' TYPEDBLOCKSTATEMENT)*
+  (_ 'elseif' _ CONDITION
+    (_ !'else' !'endif' TYPEDBLOCKSTATEMENT)*
+  )*
+  (_ 'else'
+    (_ !'endif' TYPEDBLOCKSTATEMENT)*
+  )?
+  _ 'endif'
+
+typedWhileBlock <-
+  (!reservedWord <IDENT> _ ':' _)? 'while' {
+    printf( "  WHILE: '%s'\n", $1 );
+  }
+  (_ !'endwhile' TYPEDBLOCKLOOPSTATEMENT)*
+  _ 'endwhile' {
+    printf( "  ENDWHILE\n" );
   }
 
-LoopNext <-
-  'next' {
-    printf( "  NEXT:\n" );
-  }
+typedLoopIfBlock <-
+  'if' _ CONDITION
+    _ 'then' _ TYPEDBLOCKLOOPSTATEMENT
+/ 'if' _ CONDITION _ !'then'
+    (_ !'elseif' !'else' !'endif' TYPEDBLOCKLOOPSTATEMENT)*
+  (_ 'elseif' _ CONDITION
+    (_ !'else' !'endif' TYPEDBLOCKLOOPSTATEMENT)*
+  )*
+  (_ 'else'
+    (_ !'endif' TYPEDBLOCKLOOPSTATEMENT)*
+  )?
+  _ 'endif'
 
-Goto <-
+gotoStatement <-
   'goto' _ <IDENT> {
     printf( "  GOTO: '%s'\n", $1 );
-  }
-
-IfThen <-
-  'if' _ CONDITION _ 'then' {
-    printf( "  IFTHEN\n" );
-  }
-
-IfBegin <-
-  'if' _ CONDITION {
-    printf( "  IF\n" );
-  }
-
-IfElseIf <-
-  'elseif' _ CONDITION {
-    printf( "  ELSEIF\n" );
-  }
-
-IfElse <-
-  'else' {
-    printf( "  ELSE\n" );
-  }
-
-IfEnd <-
-  'endif' {
-    printf( "  ENDIF\n" );
-  }
-
-WhileNamedBegin <-
-  <IDENT> _ ':' _ 'while' _ CONDITION {
-    printf( "  WHILE: '%s'\n" );
-  }
-
-WhileBegin <-
-  'while' _ CONDITION {
-    printf( "  WHILE\n" );
-  }
-
-WhileEnd <-
-  'endwhile' {
-    printf( "  ENDWHILE\n" );
   }
 
 labelDeclaration <-
   <IDENT> _ ':' {
     printf( "  LABEL: '%s'\n", $1 );
+  }
+
+loopBreak <-
+  'break' _ <IDENT>? {
+    printf( "  BREAK: '%s'\n", $1 );
+  }
+
+loopNext <-
+  'next' _ <IDENT>? {
+    printf( "  NEXT: '%s'\n", $1 );
   }
 
 CONDITION <-
