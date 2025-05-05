@@ -11,21 +11,6 @@ programDeclaration <-
     printf( "[L%u] PROGRAM: '%s'\n", auxil->line, $1 );
   }
 
-RepeatNamedBegin <-
-  <IDENT> _ ':' _ 'repeat' {
-    printf( "  REPEAT: '%s'\n", $1 );
-  }
-
-RepeatBegin <-
-  'repeat' {
-    printf( "  REPEAT\n" );
-  }
-
-RepeatEnd <-
-  'when' _ CONDITION {
-    printf( "  WHEN\n" );
-  }
-
 #
 # Qualified identifier grammar parses each component in the correct order
 #
@@ -267,6 +252,7 @@ globalVarDeclaration <-
 
 funcParamDeclarations <-
   TYPESPEC _ (!reservedWord IDENT) (_ ',' _ funcParamDeclarations)* {
+    printf( "  FUNCPARAM: '%s'\n", $1 );
   }
 
 funcImport <-
@@ -286,8 +272,12 @@ FILENAME <- STRING
 LINKNAME <- STRING
 
 funcDeclaration <-
-  'func' _ 'declare' _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
-/ 'func' _ 'declare' _ TYPESPEC _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
+  'func' _ 'declare' _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')' {
+    printf( "FUNCDECL: '%s'\n", $1 );
+  }
+/ 'func' _ 'declare' _ TYPESPEC _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')' {
+    printf( "FUNCDECL: '%s'\n", $2 );
+  }
 
 funcBlock <-
   'func' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
@@ -387,6 +377,7 @@ objectDestructorBlock <-
 
 methodParamDeclarations <-
   TYPESPEC _ (!reservedWord <IDENT>) (_ ',' _ methodParamDeclarations)* {
+    printf( "  METHODPARAM: '%s'\n", $1 );
   }
 
 interfaceBlock <-
@@ -478,8 +469,9 @@ UNTYPEDBLOCKSTATEMENT <-
   untypedReturn
 / untypedIfBlock
 / untypedWhileBlock
+/ untypedRepeatBlock
 / gotoStatement
-/ labelDeclaration
+/ labelDeclaration _ UNTYPEDBLOCKSTATEMENT
 
 UNTYPEDBLOCKLOOPSTATEMENT <-
   loopBreak
@@ -487,8 +479,9 @@ UNTYPEDBLOCKLOOPSTATEMENT <-
 / untypedReturn
 / untypedLoopIfBlock
 / untypedWhileBlock
+/ untypedRepeatBlock
 / gotoStatement
-/ labelDeclaration
+/ labelDeclaration _ UNTYPEDBLOCKLOOPSTATEMENT
 
 untypedReturn <-
   'return' {
@@ -508,15 +501,6 @@ untypedIfBlock <-
   )?
   _ 'endif'
 
-untypedWhileBlock <-
-  (!reservedWord <IDENT> _ ':' _)? 'while' {
-    printf( "  WHILE: '%s'\n", $1 );
-  }
-    (_ !'endwhile' UNTYPEDBLOCKLOOPSTATEMENT)*
- _ 'endwhile' {
-    printf( "  ENDWHILE\n" );
-  }
-
 untypedLoopIfBlock <-
   'if' _ CONDITION
     _ 'then' _ UNTYPEDBLOCKLOOPSTATEMENT
@@ -530,12 +514,39 @@ untypedLoopIfBlock <-
   )?
   _ 'endif'
 
+untypedWhileBlock <-
+  (<IDENT> _ ':' _ 'while' _ CONDITION {
+    printf( "  WHILE: '%s'\n", $1 );
+  }
+  / 'while' _ CONDITION {
+      printf( "  WHILE\n" );
+    }
+  )
+    (_ !'endwhile' UNTYPEDBLOCKLOOPSTATEMENT)*
+ _ 'endwhile' {
+    printf( "  ENDWHILE\n" );
+  }
+
+untypedRepeatBlock <-
+  (<IDENT> _ ':' _ 'repeat' {
+    printf( "  REPEAT: '%s'\n", $1 );
+  }
+  / 'repeat' {
+      printf( "  REPEAT\n" );
+    }
+  )
+    (_ !'when' UNTYPEDBLOCKLOOPSTATEMENT)*
+ _ 'when' _ CONDITION {
+    printf( "  WHEN\n" );
+  }
+
 TYPEDBLOCKSTATEMENT <-
   typedReturn
 / typedIfBlock
 / typedWhileBlock
+/ typedRepeatBlock
 / gotoStatement
-/ labelDeclaration
+/ labelDeclaration _ TYPEDBLOCKSTATEMENT
 
 TYPEDBLOCKLOOPSTATEMENT <-
   loopBreak
@@ -543,8 +554,9 @@ TYPEDBLOCKLOOPSTATEMENT <-
 / typedReturn
 / typedLoopIfBlock
 / typedWhileBlock
+/ typedRepeatBlock
 / gotoStatement
-/ labelDeclaration
+/ labelDeclaration _ TYPEDBLOCKLOOPSTATEMENT
 
 typedReturn <-
   'return' _ EXPR {
@@ -564,15 +576,6 @@ typedIfBlock <-
   )?
   _ 'endif'
 
-typedWhileBlock <-
-  (!reservedWord <IDENT> _ ':' _)? 'while' {
-    printf( "  WHILE: '%s'\n", $1 );
-  }
-  (_ !'endwhile' TYPEDBLOCKLOOPSTATEMENT)*
-  _ 'endwhile' {
-    printf( "  ENDWHILE\n" );
-  }
-
 typedLoopIfBlock <-
   'if' _ CONDITION
     _ 'then' _ TYPEDBLOCKLOOPSTATEMENT
@@ -586,6 +589,32 @@ typedLoopIfBlock <-
   )?
   _ 'endif'
 
+typedWhileBlock <-
+  (<IDENT> _ ':' _ 'while' _ CONDITION {
+    printf( "  WHILE: '%s'\n", $1 );
+  }
+  / 'while' _ CONDITION {
+      printf( "  WHILE\n" );
+    }
+  )
+  (_ !'endwhile' TYPEDBLOCKLOOPSTATEMENT)*
+  _ 'endwhile' {
+    printf( "  ENDWHILE\n" );
+  }
+
+typedRepeatBlock <-
+  (<IDENT> _ ':' _ 'repeat' {
+    printf( "  REPEAT: '%s'\n", $1 );
+  }
+  / 'repeat' {
+      printf( "  REPEAT\n" );
+    }
+  )
+    (_ !'when' TYPEDBLOCKLOOPSTATEMENT)*
+ _ 'when' _ CONDITION {
+    printf( "  WHEN\n" );
+  }
+
 gotoStatement <-
   'goto' _ <IDENT> {
     printf( "  GOTO: '%s'\n", $1 );
@@ -597,12 +626,12 @@ labelDeclaration <-
   }
 
 loopBreak <-
-  'break' _ <IDENT>? {
+  'break' (_ !reservedWord <IDENT>)? {
     printf( "  BREAK: '%s'\n", $1 );
   }
 
 loopNext <-
-  'next' _ <IDENT>? {
+  'next' (_ !reservedWord <IDENT>)? {
     printf( "  NEXT: '%s'\n", $1 );
   }
 

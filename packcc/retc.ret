@@ -159,13 +159,13 @@
     implements object4
     inherits interface3, interface4
     method method1()
-    method uint method2()
+    method uint method2( uint param1 )
   end
 
   method interface4.method1()
   end
 
-  method uint interface4.method2()
+  method uint interface4.method2( uint param1 )
   end
 
 run
@@ -176,9 +176,9 @@ run
     @char charPtr1
   end
 
-MyLabel:
+label1:
   if local1 == local2
-    then goto MyLabel
+    then goto label1
 
 
   if local3 == local4
@@ -187,11 +187,11 @@ MyLabel:
 
   if local1 == local2
     if local1 == local5
-      then goto MyLabel
+      then goto label1
    elseif local1 == local3
     if local1 == local5
       then if local1 == local6
-        then goto MyLabel
+        then goto label1
   elseif local1 == local4
   else
   endif
@@ -204,12 +204,19 @@ MyLabel:
   while local1 == local2
   endwhile
 
+  repeat
+  when local1 == local2
+
   outerLoop:while local1 == local2
 
-    innerLoop:while local3 == local4
+    innerLoop:repeat
       if local1 == local3
-        then break outerLoop
-    endwhile
+        then label2: label3: label4: break outerLoop
+
+      if local2 == local4
+        break
+      endif
+    when local3 == local4
 
   endwhile
 end
