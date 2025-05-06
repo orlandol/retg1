@@ -251,17 +251,21 @@ globalVarDeclaration <-
   TYPESPEC _ VARIDENT _ (',' _ VARIDENT _)*
 
 funcParamDeclarations <-
-  TYPESPEC _ (!reservedWord IDENT) (_ ',' _ funcParamDeclarations)* {
+  TYPESPEC _ (!reservedWord <IDENT>) (_ ',' _ funcParamDeclarations)* {
     printf( "  FUNCPARAM: '%s'\n", $1 );
   }
 
 funcImport <-
-  'func' _ 'import' _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
-  _ funcImportFrom _ funcImportLinkAs {
+  'func' _ 'import' _ CALLSPEC _ <IDENT> {
+    printf( "FUNCIMPORT: '%s'\n", $1 );
   }
-/ 'func' _ 'import' _ TYPESPEC _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
-  _ funcImportFrom _ funcImportLinkAs {
+  _ '(' _ funcParamDeclarations? _ ')'
+  _ funcImportFrom _ funcImportLinkAs
+/ 'func' _ 'import' _ TYPESPEC _ CALLSPEC _ <IDENT> {
+    printf( "FUNCIMPORT: '%s'\n", $2 );
   }
+  _ '(' _ funcParamDeclarations? _ ')'
+  _ funcImportFrom _ funcImportLinkAs
 
 funcImportFrom <- ('from' _ <FILENAME>)?
 
@@ -272,12 +276,14 @@ FILENAME <- STRING
 LINKNAME <- STRING
 
 funcDeclaration <-
-  'func' _ 'declare' _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')' {
+  'func' _ 'declare' _ CALLSPEC _ <IDENT> {
     printf( "FUNCDECL: '%s'\n", $1 );
   }
-/ 'func' _ 'declare' _ TYPESPEC _ CALLSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')' {
+  _ '(' _ funcParamDeclarations? _ ')'
+/ 'func' _ 'declare' _ TYPESPEC _ CALLSPEC _ <IDENT> {
     printf( "FUNCDECL: '%s'\n", $2 );
   }
+  _ '(' _ funcParamDeclarations? _ ')'
 
 funcBlock <-
   'func' _ CALLSPEC _ FUNCSPEC _ <IDENT> _ '(' _ funcParamDeclarations? _ ')'
