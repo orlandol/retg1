@@ -96,6 +96,11 @@ program PROGRAMNAME
     [...]
   end
 
+  unary TYPESPEC
+    [OPSTATEMENT]
+    [...]
+  end
+
   operator TYPESPEC OP TYPESPEC
     [OPSTATEMENT]
     [...]
@@ -156,7 +161,7 @@ STATEMENT
 -> [LABELNAME ':'] for LOCALVARNAME '=' EXPR (to / downto) EXPR
      (STATEMENT | break [LABELNAME] | next [LABELNAME]
    endfor
--> [LABELNAME ':'] for LOCALVARNAME in '[' CONSTEXPR [',' ...] ']'
+-> [LABELNAME ':'] foreach LOCALVARNAME in '[' CONSTEXPR [',' ...] ']'
      (STATEMENT | break [LABELNAME] | next [LABELNAME])
    endfor
 -> @VARNAME ASSIGNOP POINTEREXPR

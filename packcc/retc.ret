@@ -168,13 +168,24 @@
   method uint interface4.method2( uint param1 )
   end
 
+  unary ++uint
+    ++operand0
+  end
+
+  operator string = string
+    operand0 = operand1
+  end
+
 run
   var
     uint local1 , local2, local3
     uint local4, local5
     uint local6
     @char charPtr1
+    object4 local7
   end
+
+  bind( local7, interface3, interface4.method1 )
 
 label1:
   if local1 == local2
@@ -207,11 +218,11 @@ label1:
   repeat
   when local1 == local2
 
-  outerLoop:while local1 == local2
+  outerLoop1:while local1 == local2
 
-    innerLoop:repeat
+    innerLoop1:repeat
       if local1 == local3
-        then label2: label3: label4: break outerLoop
+        then label2: label3: label4: break outerLoop1
 
       if local2 == local4
         break
@@ -219,4 +230,30 @@ label1:
     when local3 == local4
 
   endwhile
+
+  foreach a in [1, 2, 3, 4]
+    for b = c to e
+      break
+    endfor
+    if a == 1
+      then label5: next
+  endfor
+
+  outerloop2:for a = b to z
+    innerloop2:foreach a in [5, 6, 7]
+      for z = y downto a
+        if a == 1234
+          then break outerloop2
+      endfor
+    endfor
+  endfor
+
+  for z = y downto a
+    for a = b to z
+      foreach i in [8, 9,10 , 11 , 12]
+        goto label4
+      endfor
+    endfor
+  endfor
+
 end

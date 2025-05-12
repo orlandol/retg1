@@ -73,6 +73,8 @@ globalDeclaration <-
 / objectDestructorBlock
 / interfaceBlock
 / methodBlock
+/ unaryBlock
+/ operatorBlock
 
 constDeclaration <-
   'const' _ BASICTYPE _ <IDENT> _ '=' _ CONSTINIT {
@@ -436,6 +438,45 @@ methodBlock <-
       printf( "METHOD: '%s.%s'\n", $3, $4 );
     }
 
+unaryBlock <-
+  'unary' _ PREFIXOP _ TYPESPEC {
+    printf( "UNARYPREFIX\n" );
+  }
+    (_ !'end' UNARYOPSTATEMENT)*
+  _ 'end'
+/ 'unary' _ TYPESPEC _ POSTFIXOP {
+    printf( "UNARYPOSTFIX\n" );
+  }
+    (_ !'end' UNARYOPSTATEMENT)*
+  _ 'end'
+
+UNARYOPSTATEMENT <-
+  PREFIXOP _ 'operand'[0-9]+
+/ 'operand'[0-9]+ _ POSTFIXOP
+
+operatorBlock <-
+  'operator' _ TYPESPEC _ OP _ TYPESPEC
+    (_ !'end' OPSTATEMENT)*
+  _ 'end'
+
+OPSTATEMENT <-
+  'operand'[0-9]+ _ (ASSIGNOP / OP) _ 'operand'[0-9]+
+
+PREFIXOP <-
+  '++' / '--' / '-' / '+' / '~' / '!'
+
+POSTFIXOP <- '++' / '--'
+
+OP <-
+  '*' / '/' / '%' / '+' / '-'
+  / '&' / '~' / '|' / '^'
+
+ASSIGNOP <-
+  '=' / '*=' / '/=' / '%=' / '+=' / '-='
+  / '>>=' / '>>>=' / '<<=' / '<<<='
+  / '>.=' / '<.='
+  / '&=' / '|=' / '~=' / '^='
+
 STRING <- DOUBLEQUOTESTRING / SINGLEQUOTESTRING
 
 DOUBLEQUOTESTRING <- '"' (!'"' .)* '"'
@@ -476,6 +517,8 @@ UNTYPEDBLOCKSTATEMENT <-
 / untypedIfBlock
 / untypedWhileBlock
 / untypedRepeatBlock
+/ untypedForBlock
+/ bindStatement
 / gotoStatement
 / labelDeclaration _ UNTYPEDBLOCKSTATEMENT
 
@@ -486,6 +529,8 @@ UNTYPEDBLOCKLOOPSTATEMENT <-
 / untypedLoopIfBlock
 / untypedWhileBlock
 / untypedRepeatBlock
+/ untypedForBlock
+/ bindStatement
 / gotoStatement
 / labelDeclaration _ UNTYPEDBLOCKLOOPSTATEMENT
 
@@ -529,7 +574,7 @@ untypedWhileBlock <-
     }
   )
     (_ !'endwhile' UNTYPEDBLOCKLOOPSTATEMENT)*
- _ 'endwhile' {
+  _ 'endwhile' {
     printf( "  ENDWHILE\n" );
   }
 
@@ -542,8 +587,43 @@ untypedRepeatBlock <-
     }
   )
     (_ !'when' UNTYPEDBLOCKLOOPSTATEMENT)*
- _ 'when' _ CONDITION {
+  _ 'when' _ CONDITION {
     printf( "  WHEN\n" );
+  }
+
+untypedForBlock <-
+  (<IDENT> _ ':' _ 'foreach' {
+    printf( "  FOREACH: '%s'\n", $1 );
+  } / 'foreach' {
+      printf( "  FOREACH\n" );
+    }
+  )
+  _ <IDENT> _ 'in' _ '[' _ CONSTEXPR (_ ',' _ CONSTEXPR)* _ ']'
+    (_ !'endfor' UNTYPEDBLOCKLOOPSTATEMENT)*
+  _ 'endfor' {
+    printf( "  ENDFOR\n" );
+  }
+/ (<IDENT> _ ':' _ 'for' {
+    printf( "  FORTO: '%s'\n", $3 );
+  } / 'for' {
+      printf( "  FORTO\n" );
+    }
+  )
+  _ <IDENT> _ '=' _ EXPR _ 'to' _ EXPR
+    (_ !'endfor' UNTYPEDBLOCKLOOPSTATEMENT)*
+  _ 'endfor' {
+    printf( "  ENDFOR\n" );
+  }
+/ (<IDENT> _ ':' _ 'for' {
+      printf( "  FORDOWNTO: '%s'\n", $5 );
+    } / 'for' {
+      printf( "  FORDOWNTO\n" );
+    }
+  )
+  _ <IDENT> _ '=' _ EXPR _ 'downto' _ EXPR
+    (_ !'endfor' UNTYPEDBLOCKLOOPSTATEMENT)*
+  _ 'endfor' {
+    printf( "  ENDFOR\n" );
   }
 
 TYPEDBLOCKSTATEMENT <-
@@ -551,6 +631,8 @@ TYPEDBLOCKSTATEMENT <-
 / typedIfBlock
 / typedWhileBlock
 / typedRepeatBlock
+/ typedForBlock
+/ bindStatement
 / gotoStatement
 / labelDeclaration _ TYPEDBLOCKSTATEMENT
 
@@ -561,6 +643,8 @@ TYPEDBLOCKLOOPSTATEMENT <-
 / typedLoopIfBlock
 / typedWhileBlock
 / typedRepeatBlock
+/ typedForBlock
+/ bindStatement
 / gotoStatement
 / labelDeclaration _ TYPEDBLOCKLOOPSTATEMENT
 
@@ -617,9 +701,47 @@ typedRepeatBlock <-
     }
   )
     (_ !'when' TYPEDBLOCKLOOPSTATEMENT)*
- _ 'when' _ CONDITION {
+  _ 'when' _ CONDITION {
     printf( "  WHEN\n" );
   }
+
+typedForBlock <-
+  (<IDENT> _ ':' _ 'foreach' {
+    printf( "  FOREACH: '%s'\n", $1 );
+  } / 'foreach' {
+      printf( "  FOREACH\n" );
+    }
+  )
+  _ <IDENT> _ 'in' _ '[' _ CONSTEXPR (_ ',' _ CONSTEXPR)* _ ']'
+    (_ !'endfor' TYPEDBLOCKLOOPSTATEMENT)*
+  _ 'endfor' {
+    printf( "  ENDFOR\n" );
+  }
+/ (<IDENT> _ ':' _ 'for' {
+    printf( "  FORTO: '%s'\n", $3 );
+  } / 'for' {
+      printf( "  FORTO\n" );
+    }
+  )
+  _ <IDENT> _ '=' _ EXPR _ 'to' _ EXPR
+    (_ !'endfor' TYPEDBLOCKLOOPSTATEMENT)*
+  _ 'endfor' {
+    printf( "  ENDFOR\n" );
+  }
+/ (<IDENT> _ ':' _ 'for' {
+      printf( "  FORDOWNTO: '%s'\n", $5 );
+    } / 'for' {
+      printf( "  FORDOWNTO\n" );
+    }
+  )
+  _ <IDENT> _ '=' _ EXPR _ 'downto' _ EXPR
+    (_ !'endfor' TYPEDBLOCKLOOPSTATEMENT)*
+  _ 'endfor' {
+    printf( "  ENDFOR\n" );
+  }
+
+bindStatement <-
+  'bind' _ '(' _ <IDENT> _ (',' _ ((<IDENT> _ '.' _ <IDENT>) / <IDENT>) )* _ ')'
 
 gotoStatement <-
   'goto' _ <IDENT> {
