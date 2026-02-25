@@ -1,0 +1,313 @@
+
+// Generated on 1min.ai with Claude 4.5 Haiku - Anthropic
+// For reference only. Does not run correctly when compiled
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+// ============================================================================
+// MACHINE CODE BUFFER
+// ============================================================================
+
+typedef struct {
+    uint8_t *code;
+    uint32_t position;
+    uint32_t capacity;
+} CodeBuffer;
+
+CodeBuffer* create_code_buffer(uint32_t initial_size) {
+    CodeBuffer *buf = malloc(sizeof(CodeBuffer));
+    buf->code = malloc(initial_size);
+    buf->position = 0;
+    buf->capacity = initial_size;
+    return buf;
+}
+
+void emit_byte(CodeBuffer *buf, uint8_t byte) {
+    if (buf->position >= buf->capacity) {
+        buf->capacity *= 2;
+        buf->code = realloc(buf->code, buf->capacity);
+    }
+    buf->code[buf->position++] = byte;
+}
+
+void emit_dword(CodeBuffer *buf, uint32_t dword) {
+    emit_byte(buf, (dword >> 0) & 0xFF);
+    emit_byte(buf, (dword >> 8) & 0xFF);
+    emit_byte(buf, (dword >> 16) & 0xFF);
+    emit_byte(buf, (dword >> 24) & 0xFF);
+}
+
+void patch_dword(CodeBuffer *buf, uint32_t offset, uint32_t value) {
+    buf->code[offset + 0] = (value >> 0) & 0xFF;
+    buf->code[offset + 1] = (value >> 8) & 0xFF;
+    buf->code[offset + 2] = (value >> 16) & 0xFF;
+    buf->code[offset + 3] = (value >> 24) & 0xFF;
+}
+
+// ============================================================================
+// SKIP LIST FOR BACKPATCHING
+// ============================================================================
+
+typedef struct BackpatchNode {
+    uint32_t instruction_offset;
+    uint32_t label_id;
+    uint8_t level;
+    struct BackpatchNode **forward;
+} BackpatchNode;
+
+typedef struct {
+    BackpatchNode *header;
+    uint8_t max_level;
+    uint32_t size;
+} BackpatchList;
+
+BackpatchList* create_backpatch_list(uint8_t max_level) {
+    BackpatchList *list = malloc(sizeof(BackpatchList));
+    list->max_level = max_level;
+    list->size = 0;
+
+    list->header = malloc(sizeof(BackpatchNode));
+    list->header->forward = calloc(max_level, sizeof(BackpatchNode*));
+    list->header->level = max_level;
+    list->header->instruction_offset = 0;
+    list->header->label_id = 0;
+
+    return list;
+}
+
+uint8_t random_level(uint8_t max_level) {
+    uint8_t level = 0;
+    while (level < max_level && (rand() % 2 == 0)) {
+        level++;
+    }
+    return level;
+}
+
+void insert_backpatch(BackpatchList *list, uint32_t offset, uint32_t label_id) {
+    uint8_t new_level = random_level(list->max_level);
+    BackpatchNode *new_node = malloc(sizeof(BackpatchNode));
+    new_node->instruction_offset = offset;
+    new_node->label_id = label_id;
+    new_node->level = new_level;
+    new_node->forward = calloc(new_level + 1, sizeof(BackpatchNode*));
+
+    BackpatchNode *current = list->header;
+    BackpatchNode **update = malloc(list->max_level * sizeof(BackpatchNode*));
+
+    // Find insertion point
+    for (int i = list->max_level - 1; i >= 0; i--) {
+        while (current->forward[i] && current->forward[i]->label_id < label_id)
+            current = current->forward[i];
+        update[i] = current;
+    }
+
+    // Insert node
+    for (int i = 0; i <= new_level; i++) {
+        new_node->forward[i] = update[i]->forward[i];
+        update[i]->forward[i] = new_node;
+    }
+
+    list->size++;
+    free(update);
+}
+
+BackpatchNode* find_first_backpatch(BackpatchList *list, uint32_t label_id) {
+    BackpatchNode *current = list->header;
+
+    for (int i = list->max_level - 1; i >= 0; i--) {
+        while (current->forward[i] && current->forward[i]->label_id < label_id)
+            current = current->forward[i];
+    }
+
+    current = current->forward[0];
+
+    if (current && current->label_id == label_id)
+        return current;
+    return NULL;
+}
+
+// ============================================================================
+// LABEL TABLE
+// ============================================================================
+
+typedef struct {
+    uint32_t *label_addresses;
+    uint32_t *label_defined;
+    uint32_t label_count;
+    uint32_t capacity;
+} LabelTable;
+
+LabelTable* create_label_table(uint32_t initial_size) {
+    LabelTable *table = malloc(sizeof(LabelTable));
+    table->label_addresses = calloc(initial_size, sizeof(uint32_t));
+    table->label_defined = calloc(initial_size, sizeof(uint32_t));
+    table->label_count = 0;
+    table->capacity = initial_size;
+    return table;
+}
+
+uint32_t declare_label(LabelTable *table) {
+    if (table->label_count >= table->capacity) {
+        table->capacity *= 2;
+        table->label_addresses = realloc(table->label_addresses,
+                                        table->capacity * sizeof(uint32_t));
+        table->label_defined = realloc(table->label_defined,
+                                      table->capacity * sizeof(uint32_t));
+    }
+    table->label_defined[table->label_count] = 0;
+    return table->label_count++;
+}
+
+void define_label(LabelTable *table, uint32_t label_id, uint32_t address) {
+    if (label_id < table->label_count) {
+        table->label_addresses[label_id] = address;
+        table->label_defined[label_id] = 1;
+    }
+}
+
+uint32_t get_label_address(LabelTable *table, uint32_t label_id) {
+    if (label_id < table->label_count && table->label_defined[label_id])
+        return table->label_addresses[label_id];
+    return 0;
+}
+
+// ============================================================================
+// COMPILER INTEGRATION
+// ============================================================================
+
+typedef struct {
+    CodeBuffer *code;
+    BackpatchList *backpatches;
+    LabelTable *labels;
+} Compiler;
+
+Compiler* create_compiler(void) {
+    Compiler *compiler = malloc(sizeof(Compiler));
+    compiler->code = create_code_buffer(4096);
+    compiler->backpatches = create_backpatch_list(16);
+    compiler->labels = create_label_table(64);
+    return compiler;
+}
+
+// Emit a JMP instruction with forward reference
+void emit_jmp_forward(Compiler *compiler, uint32_t target_label) {
+    uint32_t patch_offset = compiler->code->position;
+
+    // x86: JMP rel32 = 0xE9 followed by 4-byte offset
+    emit_byte(compiler->code, 0xE9);
+
+    // Placeholder: emit zeros (will be patched later)
+    uint32_t placeholder = 0;
+    emit_dword(compiler->code, placeholder);
+
+    // Record this location in the backpatch list
+    insert_backpatch(compiler->backpatches, patch_offset + 1, target_label);
+}
+
+// Emit a CALL instruction with forward reference
+void emit_call_forward(Compiler *compiler, uint32_t target_label) {
+    uint32_t patch_offset = compiler->code->position;
+
+    // x86: CALL rel32 = 0xE8 followed by 4-byte offset
+    emit_byte(compiler->code, 0xE8);
+
+    // Placeholder
+    emit_dword(compiler->code, 0);
+
+    // Record in backpatch list
+    insert_backpatch(compiler->backpatches, patch_offset + 1, target_label);
+}
+
+// Define a label at the current code position
+void emit_label(Compiler *compiler, uint32_t label_id) {
+    define_label(compiler->labels, label_id, compiler->code->position);
+
+    // Find and patch all backpatches for this label
+    BackpatchNode *node = find_first_backpatch(compiler->backpatches, label_id);
+    uint32_t target_address = get_label_address(compiler->labels, label_id);
+
+    while (node && node->label_id == label_id) {
+        // Calculate relative offset from instruction end to target
+        uint32_t instr_end = node->instruction_offset + 4;
+        int32_t relative_offset = (int32_t)target_address - (int32_t)instr_end;
+
+        // Patch the 4-byte offset in the code
+        patch_dword(compiler->code, node->instruction_offset,
+                   (uint32_t)relative_offset);
+
+        // Move to next backpatch node
+        node = node->forward[0];
+    }
+}
+
+// Emit simple NOP instructions for demonstration
+void emit_nop(Compiler *compiler) {
+    emit_byte(compiler->code, 0x90);
+}
+
+// ============================================================================
+// DEMONSTRATION
+// ============================================================================
+
+int main(void) {
+    Compiler *compiler = create_compiler();
+
+    // Declare labels
+    uint32_t loop_start = declare_label(compiler->labels);
+    uint32_t loop_end = declare_label(compiler->labels);
+
+    printf("=== Code Generation with Backpatching ===\n\n");
+
+    // Emit forward jump (target not yet defined)
+    printf("Position %u: JMP to label %u (forward reference)\n",
+           compiler->code->position, loop_end);
+    emit_jmp_forward(compiler, loop_end);
+
+    // Define loop_start label
+    printf("Position %u: Label %u defined\n",
+           compiler->code->position, loop_start);
+    emit_label(compiler, loop_start);
+
+    // Emit some code
+    printf("Position %u: NOP instructions\n", compiler->code->position);
+    emit_nop(compiler);
+    emit_nop(compiler);
+    emit_nop(compiler);
+
+    // Emit backward jump (target already defined)
+    printf("Position %u: JMP to label %u (backward reference)\n",
+           compiler->code->position, loop_start);
+    emit_jmp_forward(compiler, loop_start);
+
+    // Define loop_end label
+    printf("Position %u: Label %u defined\n",
+           compiler->code->position, loop_end);
+    emit_label(compiler, loop_end);
+
+    // Emit exit instruction
+    printf("Position %u: RET instruction\n", compiler->code->position);
+    emit_byte(compiler->code, 0xC3);
+
+    printf("\n=== Generated Machine Code ===\n");
+    printf("Total bytes: %u\n\n", compiler->code->position);
+
+    printf("Hex dump:\n");
+    for (uint32_t i = 0; i < compiler->code->position; i++) {
+        printf("%02X ", compiler->code->code[i]);
+        if ((i + 1) % 16 == 0) printf("\n");
+    }
+    printf("\n");
+
+    printf("=== Label Resolution ===\n");
+    for (uint32_t i = 0; i < compiler->labels->label_count; i++) {
+        if (compiler->labels->label_defined[i]) {
+            printf("Label %u -> Address 0x%X\n", i,
+                   compiler->labels->label_addresses[i]);
+        }
+    }
+
+    return 0;
+}
