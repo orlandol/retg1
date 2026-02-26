@@ -7,6 +7,8 @@ typedef struct Source {
   FILE* handle;
   unsigned line;
   unsigned column;
+  unsigned nextLine;
+  unsigned nextColumn;
   int ch;
 } Source;
 
@@ -24,6 +26,9 @@ Source* OpenSourceFile( const char* fileName ) {
   newSource = calloc(1, sizeof(Source));
   if( newSource ) {
     newSource->handle = handle;
+
+    newSource->nextLine = 1;
+    newSource->nextColumn = 1;
 
     ReadChar( newSource );
 
@@ -62,6 +67,8 @@ char ReadChar( Source* source ) {
   filech = fgetc(source->handle);
   if( filech == EOF ) { return 0; }
 
+  source->line = source->nextLine;
+  source->column = source->nextColumn;
   source->ch = filech;
 
   if( source->ch == '\r' ) {
@@ -74,11 +81,11 @@ char ReadChar( Source* source ) {
   }
 
   if( source->ch == '\n' ) {
-    source->line++;
-    source->column = 0;
+    source->nextLine++;
+    source->nextColumn = 0;
   }
 
-  source->column++;
+  source->nextColumn++;
 
   return source->ch;
 }
