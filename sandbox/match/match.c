@@ -90,7 +90,7 @@ char ReadChar( Source* source ) {
   return source->ch;
 }
 
-unsigned SkipNonTokens( Source* source ) {
+unsigned NextToken( Source* source ) {
   if( !(source && source->handle) ) { return 1; }
 
   while( isspace(source->ch) ) {
@@ -113,6 +113,7 @@ unsigned Match( Source* source, const char* keyword ) {
   prevPos = ftell(source->handle);
 
   while( *keyword ) {
+    // If characters don't match then restore state and return error 3
     if( source->ch != *keyword ) {
       *source = prevState;
       fseek( source->handle, prevPos, SEEK_SET );
@@ -122,6 +123,14 @@ unsigned Match( Source* source, const char* keyword ) {
 
     ReadChar( source );
     keyword++;
+  }
+
+  // If any tokens remain then restore state and return error 4
+  if( (isspace(source->ch) == 0) && (source->ch != '/') ) {
+    *source = prevState;
+    fseek( source->handle, prevPos, SEEK_SET );
+
+    return 4;
   }
 
   return 0;
@@ -138,30 +147,35 @@ int main( int argc, char** argv ) {
 
   printf( "ch == %c; line == %u; column == %u\n", source->ch, source->line, source->column );
 
-  SkipNonTokens( source );
+  NextToken( source );
   printf( "ch == %c; line == %u; column == %u\n", source->ch, source->line, source->column );
   printf( "File position before 'prototype': %i\n", ftell(source->handle) );
-  Match( source, "prototype" );
+  printf( "Return code: %u\n", Match(source, "prototype") );
 
-  SkipNonTokens( source );
+  NextToken( source );
   printf( "ch == %c; line == %u; column == %u\n", source->ch, source->line, source->column );
   printf( "File position before 'program': %i\n", ftell(source->handle) );
-  Match( source, "program" );
+  printf( "Return code: %u\n", Match(source, "program") );
 
-  SkipNonTokens( source );
+  NextToken( source );
+  printf( "ch == %c; line == %u; column == %u\n", source->ch, source->line, source->column );
+  printf( "File position before 'programmer': %i\n", ftell(source->handle) );
+  printf( "Return code: %u\n", Match(source, "programmer") );
+
+  NextToken( source );
   printf( "ch == %c; line == %u; column == %u\n", source->ch, source->line, source->column );
   printf( "File position before 'var': %i\n", ftell(source->handle) );
-  Match( source, "var" );
+  printf( "Return code: %u\n", Match(source, "var") );
 
-  SkipNonTokens( source );
+  NextToken( source );
   printf( "ch == %c; line == %u; column == %u\n", source->ch, source->line, source->column );
   printf( "File position before 'run': %i\n", ftell(source->handle) );
-  Match( source, "run" );
+  printf( "Return code: %u\n", Match(source, "run") );
 
-  SkipNonTokens( source );
+  NextToken( source );
   printf( "ch == %c; line == %u; column == %u\n", source->ch, source->line, source->column );
   printf( "File position before 'end': %i\n", ftell(source->handle) );
-  Match( source, "end" );
+  printf( "Return code: %u\n", Match(source, "end") );
 
   printf( "ch == %c; line == %u; column == %u\n", source->ch, source->line, source->column );
   printf( "File position after 'end': %i\n", ftell(source->handle) );
