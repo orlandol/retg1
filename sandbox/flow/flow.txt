@@ -1,0 +1,169 @@
+
+This document outlines steps for planning and implementation purposes.
+
+--
+
+Compilation steps
+
+source.ret -> binary.asm -> binary.obj -> binary.exe
+
+// source.ret -> binary.asm
+source = OpenSourceFile(sourceFileName);
+asmgen = CreateAsmFile(asmFileName);
+ParseProgram( source, asmgen );
+CloseSourceFile( &source );
+CloseAsmFile( &asmgen );
+
+// binary.asm -> binary.obj
+Assemble( asmFileName, objFileName );
+  -> system("nasm -fobj " + asmFileName + " -o " + objFileName );
+
+// binary.obj -> binary.exe
+Link( objFileName, exeFileName );
+  -> system("alink -oPE " + objFileName + " -o " + exeFileName );
+
+// Create version resource
+Verpatch( exeFileName, versionInfo );
+  -> system( "verpatch -va " + exeFileName + "..." );
+
+--
+
+Parse flow:
+program retg2
+
+// program
+NextToken( source );
+Match( source, "program" );
+
+// retg2
+NextToken( source );
+ReadIdent( source, &programName );
+DeclareNamespace(programName, &symtab);
+
+// Asm program header
+asmgen = CreateAsmFile(asmFileName);
+emitAsm( asmgen, "BITS 32\n\nSECTION .text USE32\n\n" );
+
+--
+
+Parse flow:
+func uint32 fn1()
+  return 111
+end
+
+// func
+NextToken( source );
+Match( source, "func" );
+
+// uint32
+NextToken( source );
+ParseFuncSpec( source, &funcspec );
+
+// fn1
+NextToken( source );
+ReadIdent( source, &funcName );
+
+localtab = CreateSymTab(funcName);
+emitAsmLabel( asmgen, funcName );
+
+// (
+NextToken( source );
+Submatch( "(" );
+
+//
+ParseParameters( source, localtab );
+
+// )
+NextToken( source );
+Submatch( ")" );
+
+// prologue
+prologue = funcspec->prologue
+if( prologue == NULL ) {
+  prologue = default->prologue;
+}
+emitAsm( prologue );
+
+// var blocks
+ParseLocalVarBlocks( source, localtab );
+
+// run statements
+while( Match("end") != 0 ) {
+  // Flag error on EOF
+  ParseRunStatement( source, symtab, localtab );
+}
+
+// epilogue
+epilogue = funcspec->epilogue;
+if( epilogue == NULL ) {
+  epilogue = default->epilogue;
+}
+emitAsm( epilogue );
+
+// closing return
+
+// Cleanup
+ReleaseSymTab( &localtab );
+
+--
+
+Parse flow:
+run
+  fn1()
+end
+
+// run
+NextToken( source );
+Match( source, "run" );
+
+localtab = CreateSymTab("run");
+
+// entry point
+emitAsm( asmgen, "..start:\n" );
+
+// var blocks
+ParseLocalVarBlocks( source, localtab );
+
+// prologue
+emitAsm( default->prologue );
+
+// run statements
+NextToken( source );
+while( Match("end") != 0 ) {
+  // Flag error on EOF
+  ParseRunStatement( source, symtab, localtab );
+}
+
+// epilogue
+emitAsm( default->epilogue );
+
+// closing return
+emitAsm( asmgen, "push    dword 0\ncall [ExitProcess]\n\n" );
+
+// Cleanup
+ReleaseSymTab( &localtab );
+
+--
+
+Parse flow:
+EOF
+
+// Close structs, unions, objects, interfaces so they can't be modified
+CloseDeclarations( symtab );
+
+// Initialized data
+emitAsm( asmgen, "section .data\n" );
+emitAsmInitializedData( asmgen, symtab );
+
+// Uninitialized data
+emitAsm( asmgen, "section .bss\n" );
+emitAsmUninitializedData( asmgen, symtab );
+
+// DLL imports
+emitAsmImports( asmgen, symtab );
+
+// Cleanup
+Cleanup();
+
+--
+
