@@ -21,7 +21,7 @@ typedef struct Symbol {
     GlobalVarSymbol globalVarSymbol;
   };
 
-  struct avl_tree_node* node;
+  struct avl_tree_node node;
 } Symbol;
 
 void ReleaseSymbol( Symbol** symbolPtr ) {
@@ -69,12 +69,10 @@ int CompareSymbols( const struct avl_tree_node *leftNode,
   Symbol* rightSym = NULL;
 
   if( !(leftNode && rightNode) ) { return 256; }
-printf( "$\n" );
 
   leftSym = avl_tree_entry(leftNode, Symbol, node);
   rightSym = avl_tree_entry(rightNode, Symbol, node);
   if( !(leftSym && rightSym) ) { return 257; }
-printf( "leftSym->name == '%s'; rightSym->name == '%s'\n", leftSym->name, rightSym->name );
 
   return strcmp(leftSym->name, rightSym->name);
 }
@@ -95,17 +93,14 @@ void ReleaseSymbolTable( SymbolTable** symbolTablePtr ) {
       avl_tree_for_each_in_postorder( curSymbol,
           symbolTable->root, Symbol, node ) {
 
-        avl_tree_remove( &(symbolTable->root), curSymbol->node );
-        avl_tree_node_set_unlinked( curSymbol->node );
+        avl_tree_remove( &(symbolTable->root), &(curSymbol->node) );
+        avl_tree_node_set_unlinked( &(curSymbol->node) );
 
         releaseSymbol = ReleaseSymbol;
         if( curSymbol->releaseSymbol ) {
           releaseSymbol = curSymbol->releaseSymbol;
         }
         releaseSymbol( &curSymbol );
-
-        free( curSymbol );
-        curSymbol = NULL;
       }
 
       symbolTable->symCount = 0;
@@ -122,8 +117,11 @@ unsigned DeclareSymbol( SymbolTable* symbolTable, Symbol* symbol ) {
   if( symbolTable == NULL ) { return 1; }
   if( !(symbol && symbol->name && (*symbol->name)) ) { return 2; }
 
+  if( symbolTable->symCount == ((unsigned)-1) ) { return 4; }
+  symbolTable->symCount++;
+
   existingNode = avl_tree_insert( &(symbolTable->root),
-      symbol->node, CompareSymbols );
+      &(symbol->node), CompareSymbols );
   if( existingNode ) { return 3; }
 
   return 0;
@@ -143,6 +141,7 @@ unsigned DeclareGlobalVar( SymbolTable* symbolTable,
   newSymbol->releaseSymbol = ReleaseGlobalVarSymbol;
   newSymbol->name = strdup(varName);
   newSymbol->globalVarSymbol.typeSpec = varTypespec;
+  avl_tree_node_set_unlinked( &(newSymbol->node) );
 
   if( DeclareSymbol(symbolTable, newSymbol) ) {
     ReleaseGlobalVarSymbol( &newSymbol );
