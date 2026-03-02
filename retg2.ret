@@ -1,5 +1,114 @@
 
 program retg2
 
+/*
+  /*
+   *  Win32
+   */
+
+  import func DWORD GetLastError()
+    from "kernel32.dll"
+
+  import func HANDLE CreateFile( LPCWSTR lpFileName, DWORD dwDesiredAccess,
+      DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+      DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes,
+      HANDLE hTemplateFile )
+    from "kernel32.dll"
+    linkas "CreateFileW"
+
+  import func BOOL CloseHandle( HANDLE hObject )
+    from "kernel32.dll"
+
+  /*
+   *  Memory management
+   */
+  func @ alloc( usize size )
+  end
+
+  func @ resize( usize newSize )
+  end
+
+  func free( @ )
+  end
+
+  /*
+   *  Strings
+   */
+  object string
+    usize length
+    usize allocatedLength
+    @char[] data
+  end
+
+  constructor string( string stringToCopy )
+  end
+
+  constructor string( usize reserveLength )
+  end
+
+  destructor string()
+  end
+
+  operator = ( string )
+  end
+
+  operator string = ( string )
+  end
+
+  operator string + ( string )
+  end
+
+  operator string += ( string )
+  end
+
+  /*
+   *  Base file I/O
+   */
+  object file
+    int handle
+  end
+
+  interface fileRead implements file
+    method char readChar()
+    method fsize readBlock( # toBuffer, usize ofSize )
+  end
+
+  interface fileWrite implements file
+    method uint writeChar( char charValue )
+    method fsize writeBlock( # fromBuffer, usize ofSize )
+  end
+
+  interface file
+    inherits fileRead, fileWrite
+  end
+
+  /*
+   *  Parser
+   */
+  object parse inherits file
+    uint line, column
+    char ch, nextch
+  end
+
+  constructor parse( string fileName )
+  end
+
+  constructor parse( file fromFile )
+  end
+
+  destructor parse()
+  end
+
+  interface parse
+    inherits file.read
+
+    method uint NextToken()
+    method uint Match( string withString )
+    method uint Submatch( string withSubString )
+
+    method uint Parse( SymbolTable symbolTable, Binary binaryFile )
+  end
+*/
+
 run
 end
