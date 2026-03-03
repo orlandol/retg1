@@ -117,12 +117,14 @@ unsigned DeclareSymbol( SymbolTable* symbolTable, Symbol* symbol ) {
   if( symbolTable == NULL ) { return 1; }
   if( !(symbol && symbol->name && (*symbol->name)) ) { return 2; }
 
-  if( symbolTable->symCount == ((unsigned)-1) ) { return 4; }
+  if( symbolTable->symCount == ((unsigned)-1) ) { return 3; }
   symbolTable->symCount++;
+
+  avl_tree_node_set_unlinked( &(symbol->node) );
 
   existingNode = avl_tree_insert( &(symbolTable->root),
       &(symbol->node), CompareSymbols );
-  if( existingNode ) { return 3; }
+  if( existingNode ) { return 4; }
 
   return 0;
 }
@@ -141,7 +143,6 @@ unsigned DeclareGlobalVar( SymbolTable* symbolTable,
   newSymbol->releaseSymbol = ReleaseGlobalVarSymbol;
   newSymbol->name = strdup(varName);
   newSymbol->globalVarSymbol.typeSpec = varTypespec;
-  avl_tree_node_set_unlinked( &(newSymbol->node) );
 
   if( DeclareSymbol(symbolTable, newSymbol) ) {
     ReleaseGlobalVarSymbol( &newSymbol );
@@ -150,6 +151,20 @@ unsigned DeclareGlobalVar( SymbolTable* symbolTable,
   }
 
   return 0;
+}
+
+void DumpTable( SymbolTable* symbolTable ) {
+  Symbol* curSymbol = NULL;
+
+  if( symbolTable == NULL ) {
+    printf( "Table empty\n" );
+  } else {
+    printf( "Dumping %u table entries\n", symbolTable->symCount );
+    avl_tree_for_each_in_order( curSymbol,
+        symbolTable->root, Symbol, node ) {
+      printf( "['%s']\n", curSymbol->name );
+    }
+  }
 }
 
 SymbolTable* symtab = NULL;
@@ -163,7 +178,10 @@ int main( int argc, char** argv ) {
 
   symtab = CreateSymbolTable();
 
-  printf( "DeclareGlobalVar(...'test'...) == %u\n", DeclareGlobalVar( symtab, "test", 1234 ) );
+  printf( "DeclareGlobalVar('test') == %u\n", DeclareGlobalVar(symtab, "test", 1234) );
+  printf( "DeclareGlobalVar('alpha') == %u\n", DeclareGlobalVar(symtab, "alpha", 1234) );
+
+  DumpTable( symtab );
 
   Cleanup();
 
