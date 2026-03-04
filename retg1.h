@@ -11,6 +11,8 @@
 typedef char retstr;
 
 retstr* retstrCreate( uint32_t length );
+retstr* retstrCopy( retstr* retString );
+retstr* retstrCopyStr( const char* cstring );
 void retstrRelease( retstr** retstrPtr );
 
 /*
