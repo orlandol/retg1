@@ -1,4 +1,5 @@
 
+#include <process.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -7,11 +8,20 @@
 
 Options options = {};
 
-unsigned warningCount = 0;
-unsigned errorCount = 0;
+Source* source = NULL;
+Binary* binary = NULL;
 
-unsigned Execute( const char* command, const char* arguments ) {
-  return 3;
+unsigned Execute( const char* command, const char* arguments[], unsigned* exitCode ) {
+  unsigned result = 0;
+
+  if( !(command && (*command)) ) { return 2; }
+  if( !(arguments && (*arguments)) ) { return 3; }
+
+  result = _spawnv(_P_WAIT, command, arguments);
+
+  if( exitCode ) { *exitCode = result; }
+
+  return 0;
 }
 
 void PrintBanner() {
@@ -23,13 +33,14 @@ void PrintUsage() {
   printf( "  usage: retg1 source[.ret] [binary.exe]\n\n" );
 }
 
-void PrintSummary( const char* generatedName,
-                   unsigned ParseWarnings, unsigned parseErrors ) {
-  printf( "  Completed building '%s': %u warning(s); %u error(s)\n\n",
-    generatedName, warningCount, errorCount );
+void PrintSummary( const char* binaryName ) {
+  printf( "  Completed building '%s'\n\n", binaryName );
 }
 
 void Cleanup() {
+  CloseSourceFile( &source );
+  CloseBinaryFile( &binary );
+
   retstrRelease( &options.sourceName );
   retstrRelease( &options.asmName );
   retstrRelease( &options.objName );
@@ -37,6 +48,8 @@ void Cleanup() {
 }
 
 int main( int argc, char** argv ) {
+  unsigned exitCode = 0;
+
   atexit( Cleanup );
 
   PrintBanner();
@@ -48,7 +61,28 @@ int main( int argc, char** argv ) {
 
   ParseOptions( argc, argv, &options );
 
-  PrintSummary( options.binaryName, warningCount, errorCount );
+  ParseProgram( source, binary );
+
+  //nasm -fobj binary.asm
+  const char* nasmArguments[] = {
+    "-fobj",
+    options.asmName,
+    NULL
+  };
+  //Execute( "nasm.exe", nasmArguments, &exitCode );
+  //Error check
+
+  //alink -oPE -subsys console binary.obj
+  const char* alinkArguments[] = {
+    "-oPE",
+    "-subsys console",
+    options.objName,
+    NULL
+  };
+  //Execute( "alink.exe", alinkArguments, &exitCode );
+  //Error check
+
+  PrintSummary( options.binaryName );
 
   Cleanup();
 

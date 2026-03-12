@@ -3,6 +3,7 @@
 #define RETG1_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 /*
  *  Retineo String declarations
@@ -43,6 +44,26 @@ unsigned ParseOptions( int argc, char** argv, Options* options );
  *  Source file declarations
  */
 
+typedef struct Source {
+  FILE* handle;
+} Source;
+
+Source* OpenSourceFile( const char* fileName );
+unsigned CloseSourceFile( Source** sourcePtr );
+
+char ReadChar( Source* source );
+
+/*
+ *  Win32 x86 code generator declarations
+ */
+
+typedef struct Binary {
+  FILE* handle;
+} Binary;
+
+Binary* CreateBinaryFile( const char* fileName );
+unsigned CloseBinaryFile( Binary** binaryPtr );
+
 /*
  *  Retineo expression parser declarations
  */
@@ -51,8 +72,11 @@ unsigned ParseOptions( int argc, char** argv, Options* options );
  *  Retineo parser declarations
  */
 
-/*
- *  Win32 x86 code generator declarations
- */
+unsigned NextToken( Source* source );
+
+unsigned Match( Source* source, const char* withString );
+unsigned Submatch( Source* source, const char* withString );
+
+unsigned ParseProgram( Source* source, Binary* binary );
 
 #endif
