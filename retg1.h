@@ -18,10 +18,13 @@
 
 typedef char retstr;
 
-retstr* retstrCreate( uint32_t length );
-retstr* retstrCopy( const retstr* retString );
+retstr* retstrAllocate( uint32_t length );
+retstr* retstrCopy( const retstr* rstring );
 retstr* retstrCopyStr( const char* cstring );
 void retstrRelease( retstr** retstrPtr );
+
+uint32_t retstrLength( const retstr* retString );
+uint32_t retstrTotalSize( const retstr* retString );
 
 /*
  *  Program argument parser declarations
@@ -46,10 +49,13 @@ unsigned ParseOptions( int argc, char** argv, Options* options );
 
 typedef struct Source {
   FILE* handle;
+  uint32_t line;
+  uint32_t column;
+  char ch;
 } Source;
 
 Source* OpenSourceFile( const char* fileName );
-unsigned CloseSourceFile( Source** sourcePtr );
+void CloseSourceFile( Source** sourcePtr );
 
 char ReadChar( Source* source );
 
@@ -57,12 +63,15 @@ char ReadChar( Source* source );
  *  Win32 x86 code generator declarations
  */
 
-typedef struct Binary {
+typedef struct AsmGen {
   FILE* handle;
-} Binary;
+} AsmGen;
 
-Binary* CreateBinaryFile( const char* fileName );
-unsigned CloseBinaryFile( Binary** binaryPtr );
+AsmGen* CreateAsmFile( const char* fileName );
+void CloseAsmFile( AsmGen** asmgenPtr );
+
+
+unsigned EmitAsm( AsmGen* asmgen, const char* asmString );
 
 /*
  *  Retineo expression parser declarations
@@ -77,6 +86,6 @@ unsigned NextToken( Source* source );
 unsigned Match( Source* source, const char* withString );
 unsigned Submatch( Source* source, const char* withString );
 
-unsigned ParseProgram( Source* source, Binary* binary );
+unsigned ParseProgram( Source* source, AsmGen* asmgen );
 
 #endif

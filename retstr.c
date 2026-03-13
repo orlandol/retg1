@@ -7,12 +7,12 @@
 
 typedef struct retstrImpl {
   uint32_t length;
-  uint32_t size;
+  uint32_t totalSize;
 } retstrImpl;
 
 typedef struct blankRetstrImpl {
   uint32_t length;
-  uint32_t size;
+  uint32_t totalSize;
   char     data[8];
 } blankRetstrImpl;
 
@@ -25,72 +25,76 @@ static const blankRetstrImpl blankRetStringData = {
 static const retstr* blankRetString =
   ((retstr*)&blankRetStringData) + sizeof(retstrImpl);
 
-retstr* retstrCreate( uint32_t size ) {
-  retstrImpl* newStringImpl = NULL;
-  retstr* newString = NULL;
+retstr* retstrAllocate( uint32_t size ) {
+  retstrImpl* newStrImpl = NULL;
+  retstr* newStr = NULL;
   uint32_t paddedSize = 0;
+  uint32_t totalSize = 0;
 
   paddedSize = RETSTR_PAD(size);
-  if( paddedSize < size ) { return NULL; }
+  totalSize = sizeof(retstrImpl) + paddedSize;
+  if( totalSize < size ) { return NULL; }
 
-  newStringImpl = calloc(1, sizeof(retstrImpl) + paddedSize);
-  if( newStringImpl ) {
-    newStringImpl->size = paddedSize;
-    newString = ((retstr*)newStringImpl) + sizeof(retstrImpl);
+  newStrImpl = calloc(1, totalSize);
+  if( newStrImpl ) {
+    newStrImpl->totalSize = totalSize;
+    newStr = ((retstr*)newStrImpl) + sizeof(retstrImpl);
   }
 
-  return newString;
+  return newStr;
 }
 
-retstr* retstrCopy( const retstr* retString ) {
-  retstrImpl* newStringImpl = NULL;
-  retstr* newString = NULL;
-  const retstrImpl* sourceStringImpl = NULL;
-  const retstr* sourceString;
-  uint32_t sourceLength = 0;
-  uint32_t sourceSize = 0;
+retstr* retstrCopy( const retstr* rstring ) {
+  retstrImpl* newStrImpl = NULL;
+  retstr* newStr = NULL;
+  retstrImpl* rstringImpl = (retstrImpl*)(rstring - sizeof(retstrImpl));
+  uint32_t paddedSize = 0;
+  uint32_t totalSize = 0;
 
-  sourceString = retString ? retString : blankRetString;
-  sourceStringImpl = (retstrImpl*)(sourceString - sizeof(retstrImpl));
+  if( !(rstring && (*rstring)) ) { return NULL; }
 
-  sourceLength = sourceStringImpl->length;
-  sourceSize = sourceStringImpl->size;
+  totalSize = retstrTotalSize(rstring);
+  if( totalSize == 0 ) { return retstrAllocate(0); }
 
-  newStringImpl = calloc(1, sizeof(retstrImpl) + sourceSize);
-  if( newStringImpl ) {
-    newStringImpl->length = sourceLength;
-    newStringImpl->size = sourceSize;
+  newStrImpl = calloc(1, totalSize);
+  if( newStrImpl ) {
+    newStrImpl->length = retstrLength(rstring);
+    newStrImpl->totalSize = totalSize;
 
-    newString = ((retstr*)newStringImpl) + sizeof(retstrImpl);
-    strncpy( newString, sourceString, sourceLength );
+    newStr = ((retstr*)newStrImpl) + sizeof(retstrImpl);
+
+    memcpy( newStr, rstringImpl, totalSize );
   }
 
-  return newString;
+  return newStr;
 }
 
 retstr* retstrCopyStr( const char* cstring ) {
-  retstrImpl* newStringImpl = NULL;
-  retstr* newString = NULL;
-  const char* sourceString;
-  size_t sourceLength = 0;
+  retstrImpl* newStrImpl = NULL;
+  retstr* newStr = NULL;
   uint32_t paddedSize = 0;
+  uint32_t totalSize = 0;
+  size_t clength = 0;
 
-  sourceString = cstring ? cstring : "";
+  if( !(cstring && (*cstring)) ) { return NULL; }
 
-  sourceLength = strlen(cstring);
-  paddedSize = RETSTR_PAD(sourceLength);
-  if( paddedSize < sourceLength ) { return NULL; }
+  clength = strlen(cstring);
 
-  newStringImpl = calloc(1, sizeof(retstrImpl) + paddedSize);
-  if( newStringImpl ) {
-    newStringImpl->length = sourceLength;
-    newStringImpl->size = paddedSize;
+  paddedSize = RETSTR_PAD(clength);
+  totalSize = sizeof(retstrImpl) + paddedSize;
+  if( totalSize < clength ) { return NULL; }
 
-    newString = ((retstr*)newStringImpl) + sizeof(retstrImpl);
-    strncpy( newString, sourceString, sourceLength );
+  newStrImpl = calloc(1, totalSize);
+  if( newStrImpl ) {
+    newStrImpl->length = clength;
+    newStrImpl->totalSize = totalSize;
+
+    newStr = ((retstr*)newStrImpl) + sizeof(retstrImpl);
+
+    strncpy( newStr, cstring, clength );
   }
 
-  return newString;
+  return newStr;
 }
 
 void retstrRelease( retstr** retstrPtr ) {
@@ -100,4 +104,20 @@ void retstrRelease( retstr** retstrPtr ) {
       (*retstrPtr) = NULL;
     }
   }
+}
+
+uint32_t retstrLength( const retstr* retString ) {
+  if( retString ) {
+    return ((retstrImpl*)(retString - sizeof(retstrImpl)))->length;
+  }
+
+  return 0;
+}
+
+uint32_t retstrTotalSize( const retstr* retString ) {
+  if( retString ) {
+    return ((retstrImpl*)(retString - sizeof(retstrImpl)))->totalSize;
+  }
+
+  return 0;
 }

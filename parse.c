@@ -13,6 +13,6 @@ unsigned Submatch( Source* source, const char* withString ) {
   return 3;
 }
 
-unsigned ParseProgram( Source* source, Binary* binary ) {
+unsigned ParseProgram( Source* source, AsmGen* asmgen ) {
   return 3;
 }

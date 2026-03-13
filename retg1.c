@@ -9,7 +9,7 @@
 Options options = {};
 
 Source* source = NULL;
-Binary* binary = NULL;
+AsmGen* asmgen = NULL;
 
 unsigned Execute( const char* command, const char* arguments[], unsigned* exitCode ) {
   unsigned result = 0;
@@ -39,7 +39,7 @@ void PrintSummary( const char* binaryName ) {
 
 void Cleanup() {
   CloseSourceFile( &source );
-  CloseBinaryFile( &binary );
+  CloseAsmFile( &asmgen );
 
   retstrRelease( &options.sourceName );
   retstrRelease( &options.asmName );
@@ -61,12 +61,16 @@ int main( int argc, char** argv ) {
 
   ParseOptions( argc, argv, &options );
 
-  ParseProgram( source, binary );
+  source = OpenSourceFile(options.sourceName);
+  asmgen = CreateAsmFile(options.asmName);
+  ParseProgram( source, asmgen );
 
   //nasm -fobj binary.asm
   const char* nasmArguments[] = {
     "-fobj",
     options.asmName,
+    "-o",
+    options.objName,
     NULL
   };
   //Execute( "nasm.exe", nasmArguments, &exitCode );
@@ -77,6 +81,8 @@ int main( int argc, char** argv ) {
     "-oPE",
     "-subsys console",
     options.objName,
+    "-o",
+    options.binaryName,
     NULL
   };
   //Execute( "alink.exe", alinkArguments, &exitCode );
