@@ -30,8 +30,6 @@ callspec [x86_32] CALLSPECNAME
   end]}
 end
 
-defaultcall CALLSPECNAME
-
 enum ENUMNAME
   {ENUMFIELDNAME {, ENUMEFIELDNAME} ['=' CONSTEXPR]}
 end
