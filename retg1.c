@@ -7,18 +7,116 @@
 #include "avl_tree.h"
 
 /*
+ *  Parser pre-requisites
+ */
+
+enum ExpressionType {
+  etEmpty = 0,
+  etValue,
+  etDeferred,
+  etExpression
+};
+
+typedef struct Expression {
+  unsigned type;
+} Expression;
+
+/*
  *  Symbol Table declarations
  */
+
+typedef struct Keyword {
+  char* name;
+  unsigned token;
+} Keyword;
+
+enum Token {
+  tkEOF = 0,
+  tkEOL,
+
+  kwProgram = 128,
+  kwCallspec,
+  kwType,
+  kwNewType,
+  kwEnum,
+  kwConst,
+  kwStruct,
+  kwUnion,
+  kwVar,
+  kwImport,
+  kwFuncDecl,
+  kwFunc,
+  kwObject,
+  kwConstructor,
+  kwDestructor,
+  kwInterface,
+  kwMethod,
+  kwOperator,
+  kwRun,
+
+  typeBool = 256,
+  typeChar,
+  typeFsize,
+  typeFunc,
+  typeInt,
+  typeTsize,
+  typeUint
+};
+
+extern const Keyword toplevelKeywords[];
+
+typedef struct BaseType {
+  char* name;
+  unsigned token;
+  unsigned precision;
+  size_t size;
+} BaseType;
+
+extern const BaseType baseType[];
+
+typedef struct SymbolTable {
+  char* name;
+  struct avl_tree_node root;
+} SymbolTable;
+
+typedef struct CallSpec {
+  unsigned fields;
+  unsigned codeType; // asm
+  unsigned frameType; // frame | noframe
+} CallSpec;
+
+typedef struct FuncSpec {
+  unsigned fields;
+  CallSpec callspec;
+  TypeSpec returnType;
+} FuncSpec;
+
+// [@] [baseType | 'func' FuncSpec '(' [ParameterDeclarations] ')' | typeName]
+typedef struct TypeSpec {
+  unsigned pointerType; // [@]
+  unsigned baseType; // [baseType[:precision]]
+  unsigned basePrecision; // [:precision]
+  char* typeName; // typeName if simpleType is 0
+  FuncSpec funcReturnType;
+  SymbolTable funcParams; // '(' [ParameterDeclarations] ')'
+  SymbolTable arrayDimensions; // ['[' {ArrayDimensions} ']']
+} TypeSpec;
+
+typedef struct GlobalVar {
+  TypeSpec typeSpec;
+} GlobalVar;
 
 typedef struct Symbol {
   char* name;
   unsigned type;
+  union {
+    GlobalVar globalVar;
+  };
   struct avl_tree_node node;
 } Symbol;
 
-typedef struct SymbolTable {
-  struct avl_tree_node root;
-} SymbolTable;
+SymbolTable* CreateSymbolTable( char* rootName );
+void ReleaseSymbolTable( SymbolTable* symtabPtr );
 
 /*
  *  Code Generator declarations
@@ -40,76 +138,6 @@ void CloseBinary( CodeGen** codegenPtr );
  *  Parser declarations
  */
 
-typedef struct Keyword {
-  char* name;
-  unsigned token;
-} Keyword;
-
-enum Token {
-  tkEOF = 0,
-  kwProgram = 128,
-  kwCallspec,
-  kwType,
-  kwNewType,
-  kwEnum,
-  kwConst,
-  kwStruct,
-  kwUnion,
-  kwVar,
-  kwImport,
-  kwFuncDecl,
-  kwFunc,
-  kwObject,
-  kwConstructor,
-  kwDestructor,
-  kwInterface,
-  kwMethod,
-  kwOperator,
-  kwRun,
-  kwEnd
-};
-
-const Keyword reservedWords[] = {
-  "callspec", kwCallspec,
-  "const", kwConst,
-  "constructor", kwConstructor,
-  "destructor", kwDestructor,
-  "end", kwEnd,
-  "enum", kwEnum,
-  "func", kwFunc,
-  "funcdecl", kwFuncDecl,
-  "import", kwImport,
-  "interface", kwInterface,
-  "method", kwMethod,
-  "newtype", kwNewType,
-  "object", kwObject,
-  "operator", kwOperator,
-  "program", kwProgram,
-  "run", kwRun,
-  "struct", kwStruct,
-  "type", kwType,
-  "union", kwUnion,
-  "var", kwVar
-};
-
-typedef struct TypeSpec {
-  unsigned pointerType;
-  unsigned baseType;
-  char* baseTypeName;
-  SymbolTable funcParams;
-} TypeSpec;
-
-enum ExpressionType {
-  etEmpty = 0,
-  etValue,
-  etDeferred,
-  etExpression
-};
-
-typedef struct Expression {
-  unsigned type;
-} Expression;
-
 typedef struct Parser {
   FILE* handle;
   unsigned line;
@@ -125,8 +153,10 @@ typedef struct Parser {
 Parser* OpenSource( const char* sourcePath );
 void CloseSource( Parser** parserPtr );
 
-char PeekChar( Parser* sourcee );
+char PeekChar( Parser* source );
 char ReadChar( Parser* source );
+
+unsigned NextToken( Parser* source );
 
 /*
  *  Main declarations
@@ -157,7 +187,40 @@ typedef struct Options {
 Options options;
 
 /*
- *  Code Generator declarations
+ *  Symbol Table implementation
+ */
+
+SymbolTable* CreateSymbolTable( char* rootName ) {
+  SymbolTable* newSymbolTable = NULL;
+
+  if( !(rootName && (*rootName)) ) { return NULL; }
+  
+  newSymbolTable = calloc(1, sizeof(SymbolTable));
+  if( newSymbolTable ) {
+    newSymbolTable->name = strdup(rootName);
+    if( newSymbolTable->name ) {
+      return newSymbolTable;
+    }
+
+    ReleaseSymbolTable( &newSymbolTable );
+  }
+
+  return NULL;
+}
+
+void ReleaseSymbolTable( SymbolTable* symtabPtr ) {
+  if( symtabPtr ) {
+    if( (*symtabPtr) ) {
+      // Cleanup tree
+      
+      free( (*symtabPtr) );
+      (*symtabPtr) = NULL;
+    }
+  }
+}
+
+/*
+ *  Code Generator implementation
  */
 
 CodeGen* CreateBinary( const char* binaryPath ) {
@@ -199,6 +262,39 @@ void CloseBinary( CodeGen** codegenPtr ) {
 /*
  *  Parser implementation
  */
+
+const Keyword toplevelKeywords[] = {
+  "callspec", kwCallspec,
+  "const", kwConst,
+  "constructor", kwConstructor,
+  "destructor", kwDestructor,
+  "enum", kwEnum,
+  "func", kwFunc,
+  "funcdecl", kwFuncDecl,
+  "import", kwImport,
+  "interface", kwInterface,
+  "method", kwMethod,
+  "newtype", kwNewType,
+  "object", kwObject,
+  "operator", kwOperator,
+  "program", kwProgram,
+  "run", kwRun,
+  "struct", kwStruct,
+  "type", kwType,
+  "union", kwUnion,
+  "var", kwVar
+};
+
+const BaseType baseType[] = {
+  "bool", typeBool, 8, 1,
+  "char", typeChar, 8, 1,
+  "fsize", typeFsize, 64, 8,
+  "func", typeFunc, 32, 4,
+  "int", typeInt, 32, 4,
+  "method", typeMethod, 64, 8,
+  "tsize", typeTsize, 32, 4,
+  "uint", typeUint, 32, 4
+};
 
 Parser* OpenSource( const char* sourcePath ) {
   Parser* newParser = NULL;
