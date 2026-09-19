@@ -59,6 +59,7 @@ enum Token {
   typeFsize,
   typeFunc,
   typeInt,
+  typeMethod,
   typeTsize,
   typeUint
 };
@@ -85,22 +86,44 @@ typedef struct CallSpec {
   unsigned frameType; // frame | noframe
 } CallSpec;
 
-typedef struct FuncSpec {
-  unsigned fields;
-  CallSpec callspec;
-  TypeSpec returnType;
-} FuncSpec;
-
-// [@] [baseType | 'func' FuncSpec '(' [ParameterDeclarations] ')' | typeName]
+// [@] [baseType[:precision] | typeName] [ '[' ArrayDimensions ']' ]
 typedef struct TypeSpec {
   unsigned pointerType; // [@]
   unsigned baseType; // [baseType[:precision]]
   unsigned basePrecision; // [:precision]
   char* typeName; // typeName if simpleType is 0
-  FuncSpec funcReturnType;
-  SymbolTable funcParams; // '(' [ParameterDeclarations] ')'
-  SymbolTable arrayDimensions; // ['[' {ArrayDimensions} ']']
+  SymbolTable arrayDimensions; // ['[' ArrayDimensions ']']
 } TypeSpec;
+
+typedef struct FuncSpec {
+  unsigned fields;
+  CallSpec callspec;
+  TypeSpec returnType;
+  SymbolTable paramList;
+} FuncSpec;
+
+typedef struct FuncType {
+  unsigned fields;
+  CallSpec callspec;
+  TypeSpec returnType;
+  SymbolTable paramList;
+  SymbolTable arrayDimensions; // ['[' ArrayDimensions ']']
+} FuncType;
+
+typedef struct MethodSpec {
+  unsigned fields;
+  CallSpec callspec;
+  TypeSpec returnType;
+  SymbolTable paramList;
+} MethodSpec;
+
+typedef struct MethodType {
+  unsigned fields;
+  CallSpec callspec;
+  TypeSpec returnType;
+  SymbolTable paramList;
+  SymbolTable arrayDimensions; // ['[' ArrayDimensions ']']
+} MethodType;
 
 typedef struct GlobalVar {
   TypeSpec typeSpec;
@@ -116,7 +139,7 @@ typedef struct Symbol {
 } Symbol;
 
 SymbolTable* CreateSymbolTable( char* rootName );
-void ReleaseSymbolTable( SymbolTable* symtabPtr );
+void ReleaseSymbolTable( SymbolTable** symtabPtr );
 
 /*
  *  Code Generator declarations
@@ -208,7 +231,7 @@ SymbolTable* CreateSymbolTable( char* rootName ) {
   return NULL;
 }
 
-void ReleaseSymbolTable( SymbolTable* symtabPtr ) {
+void ReleaseSymbolTable( SymbolTable** symtabPtr ) {
   if( symtabPtr ) {
     if( (*symtabPtr) ) {
       // Cleanup tree
@@ -511,6 +534,8 @@ Options ParseOptions( int argc, char** argv ) {
       argIndex++;
       continue;
     }
+    
+    return tmpOptions;
   }
 
   _makepath( tmpOptions.sourceName,
