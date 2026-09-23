@@ -10,11 +10,11 @@
  *  Parser pre-requisites
  */
 
-enum ExpressionType {
-  etEmpty = 0,
-  etValue,
-  etDeferred,
-  etExpression
+enum ExpressionResult {
+  exprEmpty = 0,
+  exprValue,
+  exprDeferred,
+  exprExpression
 };
 
 typedef struct Expression {
@@ -173,13 +173,38 @@ typedef struct Parser {
   unsigned tokenColumn;
 } Parser;
 
+typedef struct TokenVal {
+  unsigned valtype;
+  union {
+    char* strval;
+    unsigned uintval;
+    int intval;
+    bool boolval;
+  };
+} TokenVal;
+
 Parser* OpenSource( const char* sourcePath );
 void CloseSource( Parser** parserPtr );
 
 char PeekChar( Parser* source );
 char ReadChar( Parser* source );
 
+unsigned SkipSpace( Parser* source );
+unsigned SkipComments( Parser* source );
+
 unsigned NextToken( Parser* source );
+
+char* ReadIdent( Parser* source );
+
+unsigned SearchKeyword( char* ident );
+char* ReadKeyword( Parser* source );
+
+unsigned ReadUintValue( Parser* source, TokenVal* tokenVal );
+unsigned ReadHexValue( Parser* source, TokenVal* tokenVal );
+unsigned ReadOctalValue( Parser* source, TokenVal* tokenVal );
+unsigned ReadBinaryValue( Parser* source, TokenVal* tokenVal );
+
+char* ReadStringValue( Parser* source );
 
 /*
  *  Main declarations
@@ -403,6 +428,50 @@ char ReadChar( Parser* source ) {
   return 0;
 }
 
+unsigned SkipSpace( Parser* source ) {
+  return 2;
+}
+
+unsigned SkipComments( Parser* source ) {
+  return 2;
+}
+
+unsigned NextToken( Parser* source ) {
+  return 2;
+}
+
+char* ReadIdent( Parser* source ) {
+  return NULL;
+}
+
+unsigned SearchKeyword( char* ident ) {
+  return 2;
+}
+
+char* ReadKeyword( Parser* source ) {
+  return NULL;
+}
+
+unsigned ReadUintValue( Parser* source, TokenVal* tokenVal ) {
+  return 3;
+}
+
+unsigned ReadHexValue( Parser* source, TokenVal* tokenVal ) {
+  return 3;
+}
+
+unsigned ReadOctalValue( Parser* source, TokenVal* tokenVal ) {
+  return 3;
+}
+
+unsigned ReadBinaryValue( Parser* source, TokenVal* tokenVal ) {
+  return 3;
+}
+
+char* ReadStringValue( Parser* source ) {
+  return NULL;
+}
+
 /*
  *  Main implementation
  */
@@ -427,14 +496,16 @@ const char newSourceText2[] = {
 
 void PrintBanner() {
   printf( "\n"
-          "Retineo Gen1 Compiler 0.1.0 Alpha Win32\n"
+          "Retineo Gen1 Compiler 0.1.1 Alpha Win32\n"
           "Copyright 1993 - 2026 Orlando LLanes\n"
   );
 }
 
 void PrintUsage() {
   printf( "\nUsage: retg1 -new source[.ret]\n" );
-  printf( "\nUsage: retg1 source[.ret] [-o output.ext] [-win32[:(console | gui)]]\n" );
+  printf( "\nUsage: retg1 source[.ret] [-o output.ext] [-win32[:(console | gui)]]\n"
+          "       Default target option is -win32:console\n"
+  );
 }
 
 unsigned GenerateNewSource( const char* sourceName ) {
@@ -501,6 +572,10 @@ Options ParseOptions( int argc, char** argv ) {
       argIndex += 2;
       continue;
     }
+
+    // Initialize host defaults
+    tmpOptions.targetOS = osWin32;
+    tmpOptions.subsystem = win32Console;
 
     // -win32
     if( strcmp(argv[argIndex], "-win32") == 0 ) {
