@@ -129,7 +129,10 @@ typedef struct GlobalVar {
   TypeSpec typeSpec;
 } GlobalVar;
 
+typedef void (*ReleaseSymbolDataFunc)( struct Symbol* symbolPtr );
+
 typedef struct Symbol {
+  ReleaseSymbolDataFunc releaseData;
   char* name;
   unsigned type;
   union {
@@ -141,13 +144,51 @@ typedef struct Symbol {
 SymbolTable* CreateSymbolTable( char* rootName );
 void ReleaseSymbolTable( SymbolTable** symtabPtr );
 
+Symbol* CreateSymbol( char* name, ReleaseSymbolDataFunc releaseData );
+void ReleaseSymbol( Symbol** symbolPtr );
+
+unsigned DeclareSymbol( SymbolTable* symtab, Symbol* symbol );
+unsigned RemoveSymbol( SymbolTable* symtab, char* name );
+
+Symbol* LookupSymbol( SymbolTable* symtab, char* name );
+
+unsigned DeclareVar( SymbolTable* symtab, char* name,
+    TypeSpec* typeSpec );
+
+unsigned DeclareParam( SymbolTable* paramtab, char* name,
+    TypeSpec* typeSpec );
+
+unsigned DeclareFuncImport( SymbolTable* symtab, char* name,
+  char* linkName, FuncSpec* funcSpec, char* dllFile );
+
+unsigned DeclareFuncPrototype( SymbolTable* symtab, char* name,
+    FuncSpec* funcSpec );
+
+unsigned DeclareFunc( SymbolTable* symtab, char* name,
+    FuncSpec* funcSpec );
+
 /*
  *  Code Generator declarations
  */
 
+enum Register {
+  regEAX = 128,
+  regEBX,
+  
+  regAX = 256,
+  regBX,
+
+  regAH = 512,
+  regBH,
+
+  regAL = 1024,
+  regBL
+};
+
 typedef struct Instruction {
   unsigned fields;
   unsigned prefix;
+  // ...
 } Instruction;
 
 typedef struct CodeGen {
@@ -156,6 +197,16 @@ typedef struct CodeGen {
 
 CodeGen* CreateBinary( const char* binaryPath );
 void CloseBinary( CodeGen** codegenPtr );
+
+unsigned EmitInstruction( CodeGen* binary, Instruction* instruction );
+
+unsigned GenMovRI( CodeGen* binary, unsigned reg, unsigned value );
+unsigned GenMovR8I( CodeGen* binary, unsigned reg8, unsigned value );
+unsigned GenMovR16I( CodeGen* binary, unsigned reg16, unsigned value );
+unsigned GenMovR32I( CodeGen* binary, unsigned reg32, unsigned value );
+
+unsigned GenRetNear( CodeGen* binary );
+unsigned GenRetNearI( CodeGen* binary, unsigned value );
 
 /*
  *  Parser declarations
@@ -206,6 +257,13 @@ unsigned ReadBinaryValue( Parser* source, TokenVal* tokenVal );
 
 char* ReadStringValue( Parser* source );
 
+char* MangleFuncName( FuncSpec* funcSpec, char* name );
+char* MangleMethodName( MethodSpec* funcSpec, char* name );
+
+unsigned ParseProgram( Parser* source, SymbolTable* symtab, CodeGen* binary );
+
+unsigned ParseRun( Parser* source, SymbolTable* symtab, CodeGen* binary );
+
 /*
  *  Main declarations
  */
@@ -238,6 +296,20 @@ Options options;
  *  Symbol Table implementation
  */
 
+int CompareSymbols( const struct avl_tree_node *leftNode,
+                    const struct avl_tree_node *rightNode ) {
+  Symbol* leftSym = NULL;
+  Symbol* rightSym = NULL;
+  
+  if( !(leftNode && rightNode) ) { return 256; }
+  
+  leftSym = avl_tree_entry(leftNode, Symbol, node);
+  rightSym = avl_tree_entry(rightNode, Symbol, node);
+  if( !(rightSym && leftSym) ) { return 257; }
+  
+  return strcmp(leftSym->name, rightSym->name);
+}
+
 SymbolTable* CreateSymbolTable( char* rootName ) {
   SymbolTable* newSymbolTable = NULL;
 
@@ -265,6 +337,70 @@ void ReleaseSymbolTable( SymbolTable** symtabPtr ) {
       (*symtabPtr) = NULL;
     }
   }
+}
+
+Symbol* CreateSymbol( char* name, ReleaseSymbolDataFunc releaseData ) {
+  return NULL;
+}
+
+void ReleaseSymbol( Symbol** symbolPtr ) {
+  Symbol* symbol = NULL;
+
+  if( symbolPtr ) {
+    if( (*symbolPtr) ) {
+      symbol = (*symbolPtr);
+      if( symbol->releaseData ) {
+        symbol->releaseData( symbol );
+      }
+      
+      free( (*symbolPtr) );
+      (*symbolPtr) = NULL;
+    }
+  }
+}
+
+unsigned DeclareSymbol( SymbolTable* symtab, Symbol* symbol ) {
+  return 3;
+}
+
+unsigned RemoveSymbol( SymbolTable* symtab, char* name ) {
+  return 3;
+}
+
+Symbol* LookupSymbol( SymbolTable* symtab, char* name ) {
+  return NULL;
+}
+
+unsigned DeclareVar( SymbolTable* symtab, char* name,
+    TypeSpec* typeSpec ) {
+  return 4;
+}
+
+unsigned DeclareParam( SymbolTable* paramtab, char* name,
+    TypeSpec* typeSpec ) {
+  return 4;
+}
+
+unsigned DeclareFuncImport( SymbolTable* symtab, char* name,
+    char* linkName, FuncSpec* funcSpec, char* dllFile ) {
+
+  return 6;
+}
+
+unsigned DeclareFuncPrototype( SymbolTable* symtab, char* name,
+    FuncSpec* funcSpec ) {
+
+  return 4;
+}
+
+unsigned DeclareFunc( SymbolTable* symtab, char* name,
+    FuncSpec* funcSpec ) {
+
+  // If function body is already parsed, return error.
+  
+  // If function prototype exists, validate against prototype.
+
+  return 4;
 }
 
 /*
@@ -305,6 +441,34 @@ void CloseBinary( CodeGen** codegenPtr ) {
       (*codegenPtr) = NULL;
     }
   }
+}
+
+unsigned EmitInstruction( CodeGen* binary, Instruction* instruction ) {
+  return 3;
+}
+
+unsigned GenMovRI( CodeGen* binary, unsigned reg, unsigned value ) {
+  return 4;
+}
+
+unsigned GenMovR8I( CodeGen* binary, unsigned reg8, unsigned value ) {
+  return 4;
+}
+
+unsigned GenMovR16I( CodeGen* binary, unsigned reg16, unsigned value ) {
+  return 4;
+}
+
+unsigned GenMovR32I( CodeGen* binary, unsigned reg32, unsigned value ) {
+  return 4;
+}
+
+unsigned GenRetNear( CodeGen* binary ) {
+  return 2;
+}
+
+unsigned GenRetNearI( CodeGen* binary, unsigned value ) {
+  return 3;
 }
 
 /*
@@ -472,6 +636,22 @@ char* ReadStringValue( Parser* source ) {
   return NULL;
 }
 
+char* MangleFuncName( FuncSpec* funcSpec, char* name ) {
+  return NULL;
+}
+
+char* MangleMethodName( MethodSpec* funcSpec, char* name ) {
+  return NULL;
+}
+
+unsigned ParseProgram( Parser* source, SymbolTable* symtab, CodeGen* binary ) {
+  return 2;
+}
+
+unsigned ParseRun( Parser* source, SymbolTable* symtab, CodeGen* binary ) {
+  return 2;
+}
+
 /*
  *  Main implementation
  */
@@ -530,6 +710,11 @@ unsigned GenerateNewSource( const char* sourceName ) {
 }
 
 unsigned BuildProgram( Options* buildOptions ) {
+  return 2;
+}
+
+// Merge code chunks and resolve deferred expressions/forwards
+unsigned LinkProgram( CodeGen* binary ) {
   return 2;
 }
 
