@@ -171,24 +171,107 @@ unsigned DeclareFunc( SymbolTable* symtab, char* name,
  *  Code Generator declarations
  */
 
+// https://wiki.osdev.org/X86-64_Instruction_Encoding
 enum Register {
   regEAX = 128,
+  regECX,
+  regEDX,
   regEBX,
+  regESP,
+  regEBP,
+  regESI,
+  regEDI,
   
   regAX = 256,
+  regCX,
+  regDX,
   regBX,
+  regSP,
+  regBP,
+  regSI,
+  regDI,
 
-  regAH = 512,
+  regAL = 512,
+  regCL,
+  regDL,
+  regBL,
+  regAH,
+  regCH,
+  regDH,
   regBH,
+  
+  regES = 1024,
+  regCS,
+  regSS,
+  regDS,
+  regFS,
+  regGS,
+  
+  regST0 = 2048,
+  regST1,
+  regST2,
+  regST3,
+  regST4,
+  regST5,
+  regST6,
+  regST7
+};
 
-  regAL = 1024,
-  regBL
+enum PrefixOpcodes {
+  // Instruction prefix
+  prefixLock = 0xF0,
+  prefixRepNE = 0xF2,
+  prefixRepNZ = prefixRepNE,
+  prefixRep = 0xF3,
+  prefixRepE = prefixRep,
+  prefixRepZ = prefixRep,
+  
+  // Address size prefix
+  prefixAddressSize = 0x67,
+  
+  // Operand Size prefix
+  prefixOpSize = 0x66,
+  
+  // Segment Override prefix
+  segCS = 0x2E,
+  segSS = 0x36,
+  segDS = 0x3E,
+  segES = 0x26,
+  segFS = 0x64,
+  segGS = 0x65
+};
+
+enum InstructionFields {
+  hasInstrPrefix = (1U << 0),
+  hasAddrSizePrefix = (1U << 1),
+  hasOpSizePrefix = (1U << 2),
+  hasSegOverride = (1U << 3),
+  hasOpcode1 = (1U << 4),
+  hasOpcode2 = (1U << 5),
+  hasModRM = (1U << 6),
+  hasSIB = (1U << 7),
+  hasDisp1 = (1U << 8),
+  hasDisp2 = (1U << 9),
+  hasDisp3 = (1U << 10),
+  hasDisp4 = (1U << 11),
+  hasImm1 = (1U << 12),
+  hasImm2 = (1U << 13),
+  hasImm3 = (1U << 14),
+  hasImm4 = (1U << 15)
 };
 
 typedef struct Instruction {
-  unsigned fields;
-  unsigned prefix;
-  // ...
+  uint32_t fields;
+  uint8_t instrPrefix;
+  uint8_t addrSizePrefix;
+  uint8_t opSizePrefix;
+  uint8_t segOverride;
+  uint8_t Opcode1;
+  uint8_t Opcode2;
+  uint8_t ModRM;
+  uint8_t SIB;
+  uint8_t Disp[4];
+  uint8_t Imm[4];
 } Instruction;
 
 typedef struct CodeGen {
