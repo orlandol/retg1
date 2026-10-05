@@ -1,0 +1,11 @@
+
+/* Multi-line
+  /* nested */ comment */
+
+// Single-line comment
+
+program retg3
+
+run
+  echoln( 'Hello, world!' )
+end

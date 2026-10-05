@@ -66,6 +66,11 @@ enum Token {
 
 extern const Keyword toplevelKeywords[];
 
+enum PointeerType {
+  ptrData = 1,
+  ptrDataOwner
+};
+
 typedef struct BaseType {
   char* name;
   unsigned token;
@@ -79,6 +84,11 @@ typedef struct SymbolTable {
   char* name;
   struct avl_tree_node root;
 } SymbolTable;
+
+enum CallSpecFields {
+  fieldCodeType = 1,
+  fieldFrameType = 2
+};
 
 typedef struct CallSpec {
   unsigned fields;
