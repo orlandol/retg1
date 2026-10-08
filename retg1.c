@@ -336,8 +336,6 @@ char ReadChar( Parser* source );
 unsigned SkipSpace( Parser* source );
 unsigned SkipComments( Parser* source );
 
-unsigned NextToken( Parser* source );
-
 char* ReadIdent( Parser* source );
 
 unsigned SearchKeyword( char* ident );
@@ -352,6 +350,8 @@ char* ReadStringValue( Parser* source );
 
 char* MangleFuncName( FuncSpec* funcSpec, char* name );
 char* MangleMethodName( MethodSpec* funcSpec, char* name );
+
+unsigned NextToken( Parser* source );
 
 unsigned ParseProgram( Parser* source, SymbolTable* symtab, CodeGen* binary );
 
@@ -686,7 +686,13 @@ char ReadChar( Parser* source ) {
 }
 
 unsigned SkipSpace( Parser* source ) {
-  return 2;
+  if( !(source && source->handle) ) { return 1; }
+
+  while( isspace(source->ch) ) {
+    ReadChar( source );
+  }
+
+  return 0;
 }
 
 unsigned SkipComments( Parser* source ) {
@@ -749,6 +755,14 @@ unsigned ParseRun( Parser* source, SymbolTable* symtab, CodeGen* binary ) {
  *  Main implementation
  */
 
+Parser* parser = NULL;
+CodeGen* binary = NULL;
+
+void Cleanup() {
+  CloseSource( &parser );
+  CloseBinary( &binary );
+}
+
 const char newSourceText1[] = {
   "\n"
   "/* Multi-line\n"
@@ -803,6 +817,11 @@ unsigned GenerateNewSource( const char* sourceName ) {
 }
 
 unsigned BuildProgram( Options* buildOptions ) {
+  if( !(buildOptions && (*(buildOptions->sourceName))
+      && (*(buildOptions->outputName))) ) {
+    return 1;
+  }
+
   return 2;
 }
 
